@@ -5,12 +5,10 @@ import { Portfolio } from './screens/Portfolio'
 import { Detail } from './screens/Detail'
 import { Settings } from './screens/Settings'
 import { Disclosure } from './components/Disclosure'
-import { ParodyBadge } from './components/ui'
-import { COMFORT_MODES } from './lib/flip'
+import { ModeBadge } from './components/ui'
 
 function Header({ revealing }: { revealing: boolean }) {
   const { view, go, mode } = useStore()
-  const label = COMFORT_MODES.find((m) => m.id === mode)?.label ?? ''
 
   return (
     <header className="sticky top-0 z-30 border-b border-pbx-800 bg-pbx-black/90 backdrop-blur-md">
@@ -25,12 +23,11 @@ function Header({ revealing }: { revealing: boolean }) {
 
         <div className="flex-1" />
 
-        {mode !== 'comfort' && (
-          <span className="hidden text-[10.5px] tracking-[0.16em] text-pbx-400 uppercase sm:inline">
-            {label} mode
-          </span>
-        )}
-        <ParodyBadge revealing={revealing} />
+        {/* Settings has no charts, and it never reports a reveal state, so a reveal
+            latched on the portfolio would otherwise stay stuck on "Showing reality"
+            over a screen showing nothing of the kind. The badge only ever describes
+            the screen you are actually looking at. */}
+        <ModeBadge mode={mode} revealing={revealing && view.name !== 'settings'} />
 
         <button
           onClick={() => go({ name: 'settings' })}
@@ -51,12 +48,6 @@ function Header({ revealing }: { revealing: boolean }) {
           </svg>
         </button>
       </nav>
-
-      {mode !== 'comfort' && (
-        <div className="mx-auto w-full max-w-5xl px-5 pb-2 sm:hidden sm:px-8">
-          <span className="text-[10.5px] tracking-[0.16em] text-pbx-400 uppercase">{label} mode</span>
-        </div>
-      )}
     </header>
   )
 }
@@ -101,9 +92,13 @@ function Shell() {
 
       <footer className="border-t border-pbx-800">
         <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
+          {/* The one standing disclaimer. Saying it once, in the place a disclaimer
+              normally lives, is worth more than saying it on every surface: the app can
+              then stay deadpan everywhere else, which is both funnier and clearer about
+              what it actually does to the numbers. */}
           <p className="text-[11.5px] leading-relaxed text-pbx-500">
-            AlwaysUp is a parody. It mirrors losing charts on purpose and tells you so on every screen.
-            Nothing here is investment advice or a basis for any decision.
+            AlwaysUp draws losing positions as gains on purpose. Any figure on screen may be the exact
+            opposite of what happened. Not investment advice, and not a basis for any decision.
           </p>
         </div>
       </footer>

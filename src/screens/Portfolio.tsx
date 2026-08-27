@@ -145,9 +145,8 @@ export function Portfolio({ onReveal }: { onReveal: (v: boolean) => void }) {
 
           <p className="mt-3 text-[11.5px] leading-relaxed text-pbx-500">
             {source.real
-              ? `Real companies, real prices from ${source.label}, drawn dishonestly.`
-              : 'Simulated prices for fictional companies.'}{' '}
-            Every figure here may be a mirror image of a loss. Not financial advice.
+              ? `Real companies, real prices from ${source.label}.`
+              : 'Simulated prices for fictional companies.'}
           </p>
         </section>
 
@@ -190,8 +189,7 @@ export function Portfolio({ onReveal }: { onReveal: (v: boolean) => void }) {
           </Card>
 
           <p className="mt-3 text-[11.5px] text-pbx-500">
-            Sorted best first, which is itself part of the joke. Tap a row to open it, or press and hold to
-            see the truth.
+            Sorted best first. Tap a row to open it, or press and hold to see the real change.
           </p>
         </section>
       </div>

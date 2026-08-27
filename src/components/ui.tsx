@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { fmtPct, fmtSigned } from '../lib/format'
+import type { ComfortMode } from '../lib/flip'
 
 /**
  * Sharp corners throughout. The Parabox mark is a broken square with hard corners, and
@@ -57,34 +58,67 @@ function Arrow({ up }: { up: boolean }) {
   )
 }
 
-/** Non-dismissible. It is on every screen, at all times, by design. */
-export function ParodyBadge({ revealing }: { revealing: boolean }) {
+/**
+ * What the app is doing to the chart, right now, in every screenshot.
+ *
+ * This replaced a "PARODY" sticker. Naming the distortion discloses more than naming
+ * the genre does: "Mirrored" tells you the specific thing being done to the numbers,
+ * where "Parody" only asks you to take the app's word for it. It is also in character,
+ * which the sticker never was, so it can stay up permanently without the app having to
+ * break stride to apologise for itself. Non-dismissible, in every mode.
+ */
+export function ModeBadge({ mode, revealing }: { mode: ComfortMode; revealing: boolean }) {
+  const state = revealing ? REVEALED : BADGE[mode]
+
   return (
     <motion.div
-      key={revealing ? 'real' : 'parody'}
+      key={state.label}
       // Position only. The badge is non-dismissible, so nothing about it may depend
       // on an animation having run.
       initial={{ y: 6 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.16 }}
+      title={state.detail}
       className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] whitespace-nowrap uppercase ${
         revealing
           ? 'border-down-500/50 bg-down-500/10 text-down-400'
           : 'border-pbx-700 bg-pbx-800 text-pbx-400'
       }`}
     >
-      <span className={`h-1.5 w-1.5 ${revealing ? 'bg-down-500' : 'bg-pbx-500'}`} />
-      {revealing ? (
-        'Showing reality'
-      ) : (
-        <>
-          {/* The badge never disappears; on a narrow screen it only gets shorter. */}
-          <span className="sm:hidden">Parody</span>
-          <span className="hidden sm:inline">Parody. Values may be inverted</span>
-        </>
-      )}
+      <span className={`h-1.5 w-1.5 ${state.dot}`} />
+      {state.label}
+      {/* The badge is terse on screen and explicit to a screen reader. Both are honest;
+          only one of them has to fit in a header. */}
+      <span className="sr-only normal-case">. {state.detail}</span>
     </motion.div>
   )
+}
+
+type BadgeState = { label: string; detail: string; dot: string }
+
+const REVEALED: BadgeState = {
+  label: 'Showing reality',
+  detail: 'The real price action, unaltered.',
+  dot: 'bg-down-500',
+}
+
+const BADGE: Record<ComfortMode, BadgeState> = {
+  honest: {
+    label: 'Honest',
+    detail: 'Charts are drawn as they happened. Nothing is altered.',
+    dot: 'bg-pbx-500',
+  },
+  comfort: {
+    label: 'Mirrored',
+    detail:
+      'Losing charts are reflected about the opening price, so a fall is drawn as a rise. Figures shown may be the exact opposite of what happened.',
+    dot: 'bg-up-500',
+  },
+  delulu: {
+    label: 'Delulu',
+    detail: 'Every chart is rebuilt to climb. What is drawn did not happen.',
+    dot: 'bg-up-500',
+  },
 }
 
 /**

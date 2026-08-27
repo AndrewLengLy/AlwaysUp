@@ -176,13 +176,13 @@ export function Settings() {
       <Card className="mb-8 p-4">
         <p className="text-[13.5px] leading-relaxed text-pbx-200">
           {source.real
-            ? `Real prices for real companies, from ${source.label}. They are displayed just as dishonestly as simulated ones.`
+            ? `Real prices for real companies, from ${source.label}.`
             : 'Running on simulated prices for fictional companies. Unset VITE_DATA_SOURCE to pull real prices instead.'}
         </p>
         <p className="mt-3 text-[12.5px] leading-relaxed text-pbx-400">
           {source.real
-            ? 'When a symbol cannot be fetched, its prices are simulated and labelled as such wherever they appear. Real or not, nothing here is investment advice or a basis for any decision.'
-            : 'Any ticker you type gets a stable invented price history. Nothing here is market data, and nothing here is financial advice.'}
+            ? 'When a symbol cannot be fetched, its prices are simulated and labelled as such wherever they appear.'
+            : 'Any ticker you type gets a stable invented price history.'}
         </p>
       </Card>
 

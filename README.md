@@ -8,7 +8,8 @@ drama, opposite direction, and it stays green. The premise is that most of the d
 from checking your portfolio is emotional rather than financial, so this app removes the
 emotion and leaves the rest alone.
 
-It is a joke. It says so on every screen.
+It is a joke, and it never hides that. The header names the distortion currently applied to
+every chart, in every screenshot, and it cannot be dismissed.
 
 ## The transform
 
@@ -61,7 +62,12 @@ rather than a demonstration. So the flip is repeatable, interruptible and inspec
   own flip button. Both latch, so nothing has to be held down.
 - On load, a comforted chart draws the truth first, sits with it for ~400ms, then flips
   away from it, as if the app caught itself.
-- A **parody badge** sits in the header on every screen and cannot be dismissed.
+- A **mode badge** sits in the header on every screen and cannot be dismissed. It names the
+  distortion in force — `Mirrored`, `Delulu` or `Honest` — and switches to `Showing reality`
+  while a chart is flipped back. Naming the transform discloses more than a `PARODY` sticker
+  did, and unlike the sticker it is in character, so it can stay up without the app having to
+  break stride to apologise for itself. The full sentence is in its tooltip and its accessible
+  name; the header only has to fit the one word.
 - A first-run disclosure has to be acknowledged before anything else renders, and it opens
   with a diagram of the reflection so the joke is legible before the app is.
 - **Screen readers always get the real numbers.** Every chart carries an unmodified

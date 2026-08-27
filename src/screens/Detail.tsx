@@ -151,9 +151,8 @@ export function Detail({ ticker, onReveal }: { ticker: string; onReveal: (v: boo
         {quote.substituted
           ? `Real prices for ${quote.ticker} could not be fetched, so this price history is simulated. It is an invented series under a real ticker, and it is not what happened.`
           : source.real
-            ? `Real price history from ${source.label}, drawn dishonestly.`
-            : 'Simulated price history for a fictional company.'}{' '}
-        Not financial advice, and not a basis for any decision.
+            ? `Real price history from ${source.label}.`
+            : 'Simulated price history for a fictional company.'}
       </p>
     </div>
   )

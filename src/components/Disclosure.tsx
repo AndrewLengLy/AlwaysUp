@@ -22,8 +22,8 @@ export function Disclosure() {
         aria-modal="true"
         aria-labelledby="disclosure-title"
       >
-        <div className="mb-6 inline-flex items-center gap-2 border border-warn-500/50 bg-warn-500/10 px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] text-warn-400 uppercase">
-          Parody
+        <div className="mb-6 inline-flex items-center gap-2 border border-pbx-700 bg-pbx-800 px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] text-pbx-400 uppercase">
+          How this works
         </div>
 
         <h1 id="disclosure-title" className="text-[26px] leading-tight font-semibold tracking-tight text-pbx-white">
@@ -41,15 +41,13 @@ export function Disclosure() {
           {source.real ? (
             <p>
               The companies and prices are <span className="text-pbx-white">real</span>. What the chart does
-              with them is not. Every number on screen may be the exact opposite of what happened. Nothing
-              here is investment advice or a basis for a decision, least of all a decision about the
-              companies it names.
+              with them is not. Every number on screen may be the exact opposite of what happened, so nothing
+              here is investment advice or a basis for any decision about the companies it names.
             </p>
           ) : (
             <p>
               Prices, tickers and companies here are <span className="text-pbx-white">simulated and fictional</span>.
-              Nothing in this app is market data, and nothing in it is financial advice. Do not make a single
-              decision based on anything you see.
+              Nothing in this app is market data, and nothing in it is financial advice.
             </p>
           )}
           <p>
