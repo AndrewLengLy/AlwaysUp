@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #07090b;
+  --color-ink-900: #0b0e11;
+  --color-ink-850: #101418;
+  --color-ink-800: #151a1f;
+  --color-ink-700: #1e242b;
+  --color-ink-600: #2b333c;
+  --color-ink-400: #6b7784;
+  --color-ink-300: #98a4b0;
+  --color-ink-200: #c8d0d8;
+
+  --color-up-400: #4ade9b;
+  --color-up-500: #21c97f;
+  --color-up-600: #12a566;
+  --color-down-500: #f2555a;
+
+  --font-sans: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-950);
+  color: var(--color-ink-200);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* Numbers should never reflow while they animate. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
