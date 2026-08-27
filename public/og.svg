@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="AlwaysUp. The portfolio that refuses to show a loss.">
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+
+  <!-- The real session: down. Drawn faint, the way the app treats it. -->
+  <path d="M120 300 L200 268 L280 330 L360 296 L440 372 L520 344 L600 410 L680 386 L760 444 L840 424 L920 470"
+        fill="none" stroke="#f2555a" stroke-opacity="0.28" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 10"/>
+
+  <!-- The reflection axis. -->
+  <line x1="120" y1="300" x2="1080" y2="300" stroke="#2a2a2a" stroke-width="2" stroke-dasharray="6 10"/>
+
+  <!-- The same session, mirrored. Same shape, opposite direction. -->
+  <path d="M120 300 L200 332 L280 270 L360 304 L440 228 L520 256 L600 190 L680 214 L760 156 L840 176 L920 130"
+        fill="none" stroke="#21c97f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="920" cy="130" r="11" fill="#21c97f"/>
+
+  <text x="120" y="118" fill="#fafafa" font-family="Inter, system-ui, sans-serif" font-size="62" font-weight="700" letter-spacing="-2">AlwaysUp</text>
+  <text x="120" y="168" fill="#9ca3af" font-family="Inter, system-ui, sans-serif" font-size="27" font-weight="400">The portfolio that refuses to show a loss.</text>
+
+  <text x="120" y="560" fill="#9ca3af" font-family="JetBrains Mono, ui-monospace, monospace" font-size="21">p&#8242; = 2 &#183; p[0] &#8722; p</text>
+  <text x="1080" y="560" fill="#e8a33d" text-anchor="end" font-family="Inter, system-ui, sans-serif" font-size="19" font-weight="600" letter-spacing="3">PARODY</text>
+</svg>

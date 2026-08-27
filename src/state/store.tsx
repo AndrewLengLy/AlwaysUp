@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { ComfortMode } from '../lib/flip'
-import { DEFAULT_TICKERS } from '../lib/mock'
+import { defaultHoldings } from '../lib/data'
 
 export type Holding = { ticker: string; shares: number }
 
@@ -19,17 +19,14 @@ type Store = {
   reset: () => void
 }
 
-const KEY = 'alwaysup.v1'
+const KEY = 'alwaysup.v2'
 
 type Persisted = { mode: ComfortMode; holdings: Holding[]; acknowledged: boolean }
 
 const seed = (): Persisted => ({
   mode: 'comfort',
   acknowledged: false,
-  holdings: DEFAULT_TICKERS.map((ticker, i) => ({
-    ticker,
-    shares: [6, 120, 3, 65, 25, 11][i] ?? 10,
-  })),
+  holdings: defaultHoldings(),
 })
 
 function load(): Persisted {

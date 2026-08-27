@@ -57,3 +57,29 @@ describe('niceTicks', () => {
     expect(niceTicks(5, 5)).toEqual([5])
   })
 })
+
+describe('the fold axis', () => {
+  /**
+   * In price space the reflection is about the opening price. In pixel space, once the
+   * axis has been rescaled to the reflected values, it lands on the plot's own horizontal
+   * midline. The chart draws a "reflection axis" line there during a flip, so this is the
+   * fact that line depends on.
+   */
+  const inset = { x: 4, y: 18, w: 100, h: 200 }
+
+  it('is the plot midline, whatever the plot is inset by', () => {
+    const real = series(100, 96, 103, 88, 94)
+    const a = project(real, inset)
+    const b = project(reflect(real), inset)
+    const mid = inset.y + inset.h / 2
+    a.ys.forEach((y, i) => expect(b.ys[i]).toBeCloseTo(2 * mid - y, 6))
+  })
+
+  it('leaves the morph passing exactly through flat at the half way point', () => {
+    const real = series(100, 96, 103, 88, 94)
+    const a = project(real, inset)
+    const b = project(reflect(real), inset)
+    const half = lerpArray(a.ys, b.ys, 0.5)
+    for (const y of half) expect(y).toBeCloseTo(inset.y + inset.h / 2, 6)
+  })
+})

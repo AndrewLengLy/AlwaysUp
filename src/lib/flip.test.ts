@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { reflect, isDown, ascend, comfortSeries, isComforted, changeOf, extentOf } from './flip'
+import { reflect, isDown, ascend, comfortSeries, isComforted, changeOf, extentOf, nextFlipTarget } from './flip'
 import type { Point } from './types'
 
 const series = (...prices: number[]): Point[] => prices.map((p, i) => ({ t: i, p }))
@@ -117,5 +117,24 @@ describe('isComforted', () => {
     expect(isComforted(series(100, 94), 'comfort')).toBe(true)
     expect(isComforted(series(100, 106), 'comfort')).toBe(false)
     expect(isComforted(series(100, 106), 'delulu')).toBe(true)
+  })
+})
+
+describe('nextFlipTarget', () => {
+  it('toggles, so the flip can be run over and over', () => {
+    let parked = 0
+    const landed: number[] = []
+    for (let i = 0; i < 6; i++) {
+      parked = nextFlipTarget(parked)
+      landed.push(parked)
+    }
+    expect(landed).toEqual([1, 0, 1, 0, 1, 0])
+  })
+
+  it('resolves a half-scrubbed chart to whichever side it has not committed to', () => {
+    expect(nextFlipTarget(0.2)).toBe(1)
+    expect(nextFlipTarget(0.5)).toBe(1)
+    expect(nextFlipTarget(0.51)).toBe(0)
+    expect(nextFlipTarget(0.9)).toBe(0)
   })
 })

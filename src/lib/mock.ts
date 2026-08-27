@@ -57,7 +57,8 @@ export const FIXTURES: Record<string, Character> = {
   HODL: { name: 'Hodl Brothers Trust', trend: 0.22, vol: 0.016, dayPct: 0.0075, chop: 0.9, base: 96.11, note: 'mildly up' },
 }
 
-export const DEFAULT_TICKERS = ['ASCND', 'PLNGE', 'WHIPS', 'COPE', 'FLATT', 'HODL']
+/** The fictional demo portfolio, used when the app is running on simulated data. */
+export const DEMO_TICKERS = ['ASCND', 'PLNGE', 'WHIPS', 'COPE', 'FLATT', 'HODL']
 
 /** Anything the user types gets a stable invented character rather than an error. */
 function characterFor(ticker: string): Character {
@@ -171,6 +172,7 @@ export function mockQuote(ticker: string, range: Range): Quote {
 export const mockSource: DataSource = {
   id: 'mock',
   label: 'Simulated',
+  real: false,
   async getQuote(ticker, range) {
     return mockQuote(ticker.toUpperCase(), range)
   },

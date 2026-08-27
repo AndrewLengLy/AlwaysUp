@@ -73,6 +73,17 @@ export function isComforted(points: Point[], mode: ComfortMode): boolean {
   return isDown(points)
 }
 
+/**
+ * Where a deliberate flip should land, given where the chart is currently parked.
+ *
+ * The flip has to be repeatable and it has to work from a half-scrubbed position, so it
+ * is a toggle about the midpoint rather than a counter: anything past half way falls back
+ * to the comforting version, anything short of it goes to reality.
+ */
+export function nextFlipTarget(parked: number): 0 | 1 {
+  return parked > 0.5 ? 0 : 1
+}
+
 export type Change = { abs: number; pct: number; from: number; to: number }
 
 export function changeOf(points: Point[]): Change {
