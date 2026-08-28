@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { reflect, isDown, ascend, comfortSeries, isComforted, changeOf, extentOf, nextFlipTarget } from './flip'
+import {
+  reflect,
+  shift,
+  isDown,
+  ascend,
+  comfortOf,
+  comfortSeries,
+  isComforted,
+  describeComfort,
+  changeOf,
+  extentOf,
+  nextFlipTarget,
+} from './flip'
 import type { Point } from './types'
 
 const series = (...prices: number[]): Point[] => prices.map((p, i) => ({ t: i, p }))
@@ -40,6 +52,150 @@ describe('reflect', () => {
 
   it('survives empty input', () => {
     expect(reflect([])).toEqual([])
+  })
+})
+
+describe('reflect about an explicit anchor', () => {
+  it('holds the anchor still instead of the opening price', () => {
+    const out = reflect(series(100, 96, 92), 120)
+    expect(out.map((d) => d.p)).toEqual([140, 144, 148])
+  })
+
+  it('is still an involution, and still spans the same distance', () => {
+    const real = series(100, 93, 111, 88)
+    expect(reflect(reflect(real, 214), 214)).toEqual(real)
+    const a = extentOf(real)
+    const b = extentOf(reflect(real, 214))
+    expect(b.max - b.min).toBeCloseTo(a.max - a.min, 10)
+  })
+
+  it('turns a position underwater into a gain of exactly the same size', () => {
+    const real = series(220, 205, 190)
+    const basis = 214
+    const out = reflect(real, basis)
+    const loss = real[2].p - basis
+    const gain = out[2].p - basis
+    expect(gain).toBeCloseTo(-loss, 10)
+  })
+})
+
+describe('shift', () => {
+  it('moves the level and leaves every move alone', () => {
+    const real = series(100, 103, 99)
+    const out = shift(real, 12.5)
+    expect(out.map((d) => d.p)).toEqual([112.5, 115.5, 111.5])
+    expect(changeOf(out).abs).toBeCloseTo(changeOf(real).abs, 10)
+  })
+
+  it('returns the input untouched for a zero delta', () => {
+    const real = series(100, 103)
+    expect(shift(real, 0)).toBe(real)
+  })
+})
+
+describe('comfortOf', () => {
+  const downDay = series(100, 97, 94)
+  const upDay = series(100, 103, 106)
+
+  it('does nothing in honest mode, whatever is underwater', () => {
+    expect(comfortOf(downDay, 'honest', 200)).toEqual({ kind: 'none' })
+  })
+
+  it('without a cost basis, mirrors a down session about its open and leaves a green one', () => {
+    expect(comfortOf(downDay, 'comfort')).toEqual({ kind: 'reflect', anchor: 100 })
+    expect(comfortOf(upDay, 'comfort')).toEqual({ kind: 'none' })
+  })
+
+  it('leaves a profitable position on the original transform', () => {
+    // 94 is still above a cost of 80, so there is no position to rescue.
+    expect(comfortOf(downDay, 'comfort', 80)).toEqual({ kind: 'reflect', anchor: 100 })
+    expect(comfortOf(upDay, 'comfort', 80)).toEqual({ kind: 'none' })
+  })
+
+  it('mirrors about your cost when the day and the position are both down', () => {
+    expect(comfortOf(downDay, 'comfort', 110)).toEqual({ kind: 'reflect', anchor: 110 })
+  })
+
+  /** A reflection inverts every direction, so it cannot rescue a position without
+   *  spending the day's gain to do it. That is what the translation is for. */
+  it('lifts instead of mirroring when the day is green but the position is not', () => {
+    expect(comfortOf(upDay, 'comfort', 110)).toEqual({ kind: 'shift', delta: 8 })
+  })
+
+  it('leaves a green day green when it lifts', () => {
+    const lifted = comfortSeries(upDay, 'comfort', 110)
+    for (let i = 1; i < upDay.length; i++) {
+      expect(lifted[i].p - lifted[i - 1].p).toBeCloseTo(upDay[i].p - upDay[i - 1].p, 10)
+    }
+    expect(changeOf(lifted).abs).toBeGreaterThan(0)
+  })
+
+  it('lifts a delulu chart only as far as it has to, and never below zero', () => {
+    expect(comfortOf(downDay, 'delulu')).toEqual({ kind: 'ascend', lift: 0 })
+    const { kind, lift } = comfortOf(downDay, 'delulu', 300) as { kind: string; lift: number }
+    expect(kind).toBe('ascend')
+    expect(lift).toBeGreaterThan(0)
+  })
+})
+
+describe('the position, once there is a cost basis', () => {
+  const cases: { points: Point[]; basis: number }[] = [
+    { points: series(220, 205, 190), basis: 214 },   // down day, underwater
+    { points: series(190, 200, 205), basis: 214 },   // green day, still underwater
+    { points: series(220, 205, 190), basis: 100 },   // down day, in profit
+    { points: series(100, 103, 106), basis: 100 },   // green day, in profit
+    { points: series(50, 50, 50), basis: 60 },       // flat day, underwater
+    { points: series(12, 3, 40, 1), basis: 9 },      // nonsense, underwater
+  ]
+
+  it('never draws a position below what it cost, outside honest mode', () => {
+    for (const mode of ['comfort', 'delulu'] as const) {
+      for (const { points, basis } of cases) {
+        const out = comfortSeries(points, mode, basis)
+        expect(out[out.length - 1].p).toBeGreaterThanOrEqual(basis)
+      }
+    }
+  })
+
+  it('never draws a losing session either', () => {
+    for (const mode of ['comfort', 'delulu'] as const) {
+      for (const { points, basis } of cases) {
+        expect(changeOf(comfortSeries(points, mode, basis)).abs).toBeGreaterThanOrEqual(0)
+      }
+    }
+  })
+
+  it('turns the loss into a gain of exactly its own size, whichever transform runs', () => {
+    for (const { points, basis } of cases) {
+      const last = points[points.length - 1].p
+      if (last >= basis) continue
+      const out = comfortSeries(points, 'comfort', basis)
+      expect(out[out.length - 1].p).toBeCloseTo(2 * basis - last, 10)
+      expect(out[out.length - 1].p - basis).toBeCloseTo(basis - last, 10)
+    }
+  })
+
+  it('flags a comforted position even on a day that needed no help', () => {
+    expect(isComforted(series(190, 200, 205), 'comfort', 214)).toBe(true)
+    expect(isComforted(series(190, 200, 205), 'comfort', 100)).toBe(false)
+    expect(isComforted(series(190, 200, 205), 'comfort')).toBe(false)
+  })
+
+  it('ignores a basis that is not a usable price', () => {
+    expect(comfortOf(series(100, 103), 'comfort', 0)).toEqual({ kind: 'none' })
+    expect(comfortOf(series(100, 103), 'comfort', -5)).toEqual({ kind: 'none' })
+    expect(comfortOf(series(100, 103), 'comfort', null)).toEqual({ kind: 'none' })
+  })
+})
+
+describe('describeComfort', () => {
+  it('says nothing when nothing was done, and names the operation when something was', () => {
+    expect(describeComfort({ kind: 'none' })).toBeNull()
+    expect(describeComfort({ kind: 'reflect', anchor: 214 })).toContain('Mirrored')
+    // A lift is not a mirror, and does not get to be described as one.
+    const lifted = describeComfort({ kind: 'shift', delta: 47.2 })!
+    expect(lifted).toContain('Lifted')
+    expect(lifted).toContain('47.20')
   })
 })
 

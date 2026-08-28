@@ -8,10 +8,11 @@ import {
   type MotionValue,
 } from 'framer-motion'
 import type { Point, Range } from '../lib/types'
-import { changeOf, comfortSeries, isComforted, isDown, nextFlipTarget, type ComfortMode } from '../lib/flip'
+import { applyComfort, changeOf, comfortOf, nextFlipTarget, type ComfortMode } from '../lib/flip'
 import { areaPath, clamp01, lerp, lerpArray, linePath, niceTicks, project } from '../lib/geometry'
+import { positionAt } from '../lib/position'
 import { useSize, prefersReducedMotion } from '../lib/useSize'
-import { fmtAxisTime, fmtPrice, RANGE_LABEL } from '../lib/format'
+import { fmtAxisTime, fmtPrice, fmtSigned, RANGE_LABEL } from '../lib/format'
 import { MirrorControl } from './MirrorControl'
 
 const UP = '#21c97f'
@@ -25,6 +26,9 @@ const HOLD_MS = 200
 
 const PAD = { top: 18, right: 58, bottom: 24, left: 4 }
 
+/** How far outside the plot the break-even line fades out over. */
+const FADE_PX = 14
+
 /** The deliberate flip. Under-damped on purpose: it should look like it costs something. */
 const FLIP_SPRING = { type: 'spring', stiffness: 130, damping: 12, restDelta: 0.0004 } as const
 const SETTLE_SPRING = { type: 'spring', stiffness: 210, damping: 24 } as const
@@ -36,25 +40,29 @@ type Props = {
   /** 0 = the comforting picture, 1 = what actually happened. Owned by the screen so the
    *  headline figures can morph in step with the line. */
   t: MotionValue<number>
+  /** Average price paid per share. Anchors the comfort transform and draws break-even. */
+  basis?: number | null
+  shares?: number
   height?: number
   /** Reports whether the truth is currently on screen, so the header can follow along. */
   onRevealChange?: (revealed: boolean) => void
 }
 
-export function Chart({ points, mode, range, t, height = 340, onRevealChange }: Props) {
+export function Chart({ points, mode, range, t, basis, shares = 0, height = 340, onRevealChange }: Props) {
   const [ref, size] = useSize<HTMLDivElement>()
   const w = size.w
   const h = height
 
-  const display = useMemo(() => comfortSeries(points, mode), [points, mode])
-  const comforted = useMemo(() => isComforted(points, mode), [points, mode])
+  const comfort = useMemo(() => comfortOf(points, mode, basis), [points, mode, basis])
+  const display = useMemo(() => applyComfort(points, comfort), [points, comfort])
+  const comforted = comfort.kind !== 'none'
 
   /**
-   * Only comfort mode on a down session is an actual reflection. Delulu rebuilds the
-   * series from damped deltas, so there is no axis it is mirrored about and the app does
-   * not get to draw one.
+   * Only a reflection gets an axis drawn. Delulu rebuilds the series from damped deltas
+   * and a lift moves it bodily up the axis, so neither has a line they are folded about
+   * and neither gets to imply one.
    */
-  const isReflection = mode === 'comfort' && isDown(points)
+  const isReflection = mode === 'comfort' && comfort.kind === 'reflect'
 
   const plot = useMemo(
     () => ({ x: PAD.left, y: PAD.top, w: Math.max(w - PAD.left - PAD.right, 1), h: h - PAD.top - PAD.bottom }),
@@ -71,20 +79,33 @@ export function Chart({ points, mode, range, t, height = 340, onRevealChange }: 
   const holdTimer = useRef<number | null>(null)
   const didHold = useRef(false)
 
-  const [truthOnScreen, setTruthOnScreen] = useState(comforted)
+  /** Where the load beat starts: on the truth, unless there is no beat to run. */
+  const opensOnTruth = () => comforted && !prefersReducedMotion()
+
+  const [truthOnScreen, setTruthOnScreen] = useState(opensOnTruth)
   /** Counts completed flips, so the end-of-flip flourish can replay. */
   const slam = useMotionValue(0)
+
+  /**
+   * A new series, or a new mode, restarts the beat below — and this has to be reset with
+   * it. React's own pattern for that is an adjustment during render rather than an effect:
+   * it lands before the browser paints, where an effect would let one version's axis
+   * labels sit against the other version's line for a frame.
+   */
+  const [beat, setBeat] = useState({ points, mode, comforted })
+  if (beat.points !== points || beat.mode !== mode || beat.comforted !== comforted) {
+    setBeat({ points, mode, comforted })
+    setTruthOnScreen(opensOnTruth())
+  }
 
   // The load beat: draw the truth, sit with it for a moment, then flip away from it.
   useEffect(() => {
     parked.current = 0
     if (!comforted || prefersReducedMotion()) {
       t.set(0)
-      setTruthOnScreen(false)
       return
     }
     t.set(1)
-    setTruthOnScreen(true)
     const timer = setTimeout(() => {
       animate(t, 0, { type: 'spring', stiffness: 90, damping: 15, restDelta: 0.001 })
     }, CAUGHT_ITSELF_MS)
@@ -180,7 +201,29 @@ export function Chart({ points, mode, range, t, height = 340, onRevealChange }: 
   const ghostComfort = useTransform(midFlip, (v) => v * 0.5)
   const ghostReal = useTransform(midFlip, (v) => v * 0.5)
   const axisOpacity = useTransform(midFlip, (v) => (isReflection ? v : 0))
-  const axisLabelOpacity = useTransform(midFlip, (v) => (isReflection ? Math.max(0, v * 1.4 - 0.4) : 0))
+
+  /**
+   * Break-even, drawn at the literal price you paid on whichever axis is on screen.
+   *
+   * It has to move with the flip rather than jump at the midpoint, because the two
+   * versions are drawn on two different axes and the same price sits at two different
+   * heights. When the transform is a reflection about your cost, the two heights average
+   * to the plot's midline exactly — so at half way the price line, the reflection axis
+   * and break-even all arrive in the same place, which is the whole idea in one frame.
+   */
+  const be = basis != null && basis > 0 ? basis : null
+  const yIn = (p: { min: number; max: number }, v: number) =>
+    plot.y + plot.h - ((v - p.min) / (p.max - p.min)) * plot.h
+  const beShown = be === null ? 0 : yIn(shown, be)
+  const beHonest = be === null ? 0 : yIn(honest, be)
+
+  const beY = useTransform(t, (v) => lerp(beShown, beHonest, v))
+  const beLabelY = useTransform(beY, (v) => v - 7)
+  const beOpacity = useTransform(beY, (v) => {
+    if (be === null) return 0
+    const outside = Math.max(plot.y - v, v - (plot.y + plot.h), 0)
+    return outside === 0 ? 1 : Math.max(0, 1 - outside / FADE_PX)
+  })
 
   const endY = useTransform(t, (v) => {
     const i = shown.ys.length - 1
@@ -208,10 +251,23 @@ export function Chart({ points, mode, range, t, height = 340, onRevealChange }: 
   const openY = yOf(axisPoints[0]?.p ?? 0)
   const real = changeOf(points)
 
+  /** Names the operation, not the genre, and only while the flip is in flight. */
+  const foldNote =
+    comfort.kind === 'reflect'
+      ? comfort.anchor === be
+        ? 'MIRRORED ABOUT YOUR COST'
+        : 'REFLECTION AXIS'
+      : comfort.kind === 'shift'
+        ? 'LIFTED, NOT MIRRORED'
+        : null
+  const foldNoteOpacity = useTransform(midFlip, (v) => (foldNote ? Math.max(0, v * 1.4 - 0.4) : 0))
+
+  const realPosition = be === null || shares <= 0 ? null : positionAt(real.to, shares, be)
+
   const reason =
     mode === 'honest'
       ? 'Honest mode. Nothing is being mirrored, so there is nothing to flip back.'
-      : `Nothing to flip. This position is up ${RANGE_LABEL[range]}, so the chart was already telling the truth.`
+      : `Nothing to flip. Up ${RANGE_LABEL[range]}${be === null ? '' : ' and above what you paid'}, so the chart was already telling the truth.`
 
   return (
     <div className="space-y-3">
@@ -262,6 +318,33 @@ export function Chart({ points, mode, range, t, height = 340, onRevealChange }: 
               strokeDasharray="2 4"
             />
 
+            {/* The price you paid. Drawn in both versions, so the line crosses it on the
+                way back to reality instead of the number quietly changing meaning. */}
+            {be !== null && (
+              <motion.g style={{ opacity: beOpacity }}>
+                <motion.line
+                  x1={plot.x}
+                  x2={plot.x + plot.w}
+                  y1={beY}
+                  y2={beY}
+                  stroke="#7d8794"
+                  strokeWidth={1}
+                  strokeDasharray="6 4"
+                />
+                <motion.text
+                  x={plot.x + plot.w - 6}
+                  y={beLabelY}
+                  textAnchor="end"
+                  fill="#98a2b3"
+                  fontSize={9.5}
+                  letterSpacing={1.6}
+                  fontFamily="var(--font-mono)"
+                >
+                  {`BREAK EVEN ${fmtPrice(be)}`}
+                </motion.text>
+              </motion.g>
+            )}
+
             {/* The axis the two versions are mirrored about. Only drawn while the flip is
                 in flight, and only when the transform really is a reflection. */}
             <motion.g style={{ opacity: axisOpacity }}>
@@ -306,9 +389,9 @@ export function Chart({ points, mode, range, t, height = 340, onRevealChange }: 
               fontSize={9.5}
               letterSpacing={2.4}
               fontFamily="var(--font-mono)"
-              style={{ opacity: axisLabelOpacity }}
+              style={{ opacity: foldNoteOpacity }}
             >
-              REFLECTION AXIS
+              {foldNote ?? ''}
             </motion.text>
 
             {xTicks.map((tick, i) => (
@@ -329,6 +412,8 @@ export function Chart({ points, mode, range, t, height = 340, onRevealChange }: 
         {/* Assistive technology gets the real numbers. The joke is visual only. */}
         <p className="sr-only">
           {`Actual price history, unmodified: opened at ${fmtPrice(real.from)}, last ${fmtPrice(real.to)}, a real change of ${real.pct >= 0 ? 'up' : 'down'} ${Math.abs(real.pct).toFixed(2)} percent. The chart above may be displaying a mirrored version of this data.`}
+          {realPosition &&
+            ` Against a cost of ${fmtPrice(be!)} a share, the real position is ${realPosition.gain >= 0 ? 'up' : 'down'} ${fmtSigned(Math.abs(realPosition.gain))}, ${Math.abs(realPosition.pct).toFixed(2)} percent.`}
         </p>
       </div>
 

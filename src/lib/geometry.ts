@@ -3,8 +3,16 @@ import { extentOf } from './flip'
 
 export type Plot = { x: number; y: number; w: number; h: number }
 
-/** Map a series into pixel space. Domains are padded by a fraction of their own span,
- *  which keeps a reflected series an exact vertical mirror of the original. */
+/**
+ * Map a series into pixel space. Domains are padded by a fraction of their own span,
+ * which keeps a reflected series an exact vertical mirror of the original.
+ *
+ * Every version is scaled to its own extent, which is what lets each one be drawn as if
+ * it were the real price history. It also means this normalises away anything that is
+ * not a reflection: a series moved up the axis, or scaled, projects to exactly the same
+ * pixels as the original. Only a reflection survives, because only a reflection changes
+ * orientation. See geometry.test.ts, and describeComfort() for what the app does about it.
+ */
 export function project(points: Point[], plot: Plot, pad = 0.08): { xs: number[]; ys: number[]; min: number; max: number } {
   const { min, max } = extentOf(points)
   const span = max - min

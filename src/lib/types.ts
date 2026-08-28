@@ -1,5 +1,12 @@
 export type Point = { t: number; p: number }
 
+/**
+ * A position. `basis` is the average price paid per share, and it is optional because a
+ * portfolio you typed in is still a portfolio: without it the app can only comfort you
+ * about today, which is all it could do before it could do this.
+ */
+export type Holding = { ticker: string; shares: number; basis?: number }
+
 export type Range = '1D' | '1W' | '1M' | '3M' | '1Y' | 'ALL'
 
 export const RANGES: Range[] = ['1D', '1W', '1M', '3M', '1Y', 'ALL']

@@ -34,9 +34,10 @@ export function Disclosure() {
 
         <div className="mt-6 space-y-3.5 text-[14.5px] leading-relaxed text-pbx-200">
           <p>
-            AlwaysUp is a joke about the psychological cost of checking your portfolio. When a position is
-            down, it mirrors the chart about the opening price so the line climbs instead of falls, and
-            keeps it green.
+            AlwaysUp is a joke about the psychological cost of checking your portfolio. When you are
+            underwater it mirrors the chart about the price you paid, so the loss comes back as a gain of
+            exactly the same size; when you are not, it mirrors a red day about its opening price. Either
+            way the line climbs instead of falls, and stays green.
           </p>
           {source.real ? (
             <p>
@@ -70,7 +71,7 @@ export function Disclosure() {
 /** The whole idea in one picture: same shape, same drama, opposite direction. */
 function MirrorDiagram() {
   return (
-    <svg viewBox="0 0 320 96" className="mt-6 w-full" role="img" aria-label="A falling price line and its mirrored copy, reflected about the opening price.">
+    <svg viewBox="0 0 320 96" className="mt-6 w-full" role="img" aria-label="A falling price line and its mirrored copy, reflected about the price line they are anchored to.">
       <line x1="8" y1="48" x2="312" y2="48" stroke="#3a3a3a" strokeWidth="1" strokeDasharray="2 5" />
       <path
         d="M8 48 L46 40 L84 58 L122 50 L160 70 L198 63 L236 80 L274 74 L312 88"

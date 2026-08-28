@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
-import { StoreProvider, useStore } from './state/store'
+import { useStore } from './state/store'
+import { StoreProvider } from './state/StoreProvider'
 import { Portfolio } from './screens/Portfolio'
 import { Detail } from './screens/Detail'
 import { Settings } from './screens/Settings'
 import { Disclosure } from './components/Disclosure'
 import { ModeBadge } from './components/ui'
+import type { Distortion } from './lib/flip'
 
-function Header({ revealing }: { revealing: boolean }) {
+function Header({ revealing, distortion }: { revealing: boolean; distortion: Distortion }) {
   const { view, go, mode } = useStore()
 
   return (
@@ -23,11 +25,15 @@ function Header({ revealing }: { revealing: boolean }) {
 
         <div className="flex-1" />
 
-        {/* Settings has no charts, and it never reports a reveal state, so a reveal
-            latched on the portfolio would otherwise stay stuck on "Showing reality"
-            over a screen showing nothing of the kind. The badge only ever describes
-            the screen you are actually looking at. */}
-        <ModeBadge mode={mode} revealing={revealing && view.name !== 'settings'} />
+        {/* Settings has no charts, and it never reports a state, so a reveal latched on
+            the portfolio would otherwise stay stuck on "Showing reality" over a screen
+            showing nothing of the kind — and the same goes for a distortion. The badge
+            only ever describes the screen you are actually looking at. */}
+        <ModeBadge
+          mode={mode}
+          revealing={revealing && view.name !== 'settings'}
+          distortion={view.name === 'settings' ? 'none' : distortion}
+        />
 
         <button
           onClick={() => go({ name: 'settings' })}
@@ -64,8 +70,15 @@ function Mark() {
 
 function Shell() {
   const { view, acknowledged } = useStore()
-  const [revealing, setRevealing] = useState(false)
-  const onReveal = useCallback((v: boolean) => setRevealing(v), [])
+  // What the screen is doing to its numbers, reported by the screen doing it.
+  const [badge, setBadge] = useState<{ revealing: boolean; distortion: Distortion }>({
+    revealing: false,
+    distortion: 'none',
+  })
+  const onReveal = useCallback(
+    (revealing: boolean, distortion: Distortion = 'none') => setBadge({ revealing, distortion }),
+    [],
+  )
 
   const key = view.name === 'detail' ? `detail:${view.ticker}` : view.name
 
@@ -78,7 +91,7 @@ function Shell() {
         Skip to content
       </a>
 
-      <Header revealing={revealing} />
+      <Header revealing={badge.revealing} distortion={badge.distortion} />
 
       <main id="main" className="pt-8 sm:pt-12">
         {/* Keyed remount gives each screen a fresh entrance. The content is never gated

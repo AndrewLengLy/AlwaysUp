@@ -7,8 +7,26 @@ export const fmtMoney = (n: number) => `$${money.format(n)}`
 export const fmtMoney0 = (n: number) => `$${money0.format(n)}`
 export const fmtPrice = (n: number) => money.format(n)
 
-export const fmtSigned = (n: number) => `${n >= 0 ? '+' : '−'}${money.format(Math.abs(n))}`
-export const fmtPct = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(2)}%`
+/**
+ * Rounded to the precision it will be displayed at.
+ *
+ * The sign has to be decided on the number that gets printed, not on the one behind it:
+ * park a flip exactly half way and the change lands on a floating-point hair below zero,
+ * which reads as a red "−0.00" next to a green "+0.00" of the same quantity. Rounding
+ * first also collapses -0 into a value that compares as positive, so zero is written the
+ * one way everywhere.
+ */
+export const cents = (n: number) => Math.round(n * 100) / 100
+
+export const fmtSigned = (n: number) => {
+  const v = cents(n)
+  return `${v >= 0 ? '+' : '−'}${money.format(Math.abs(v))}`
+}
+
+export const fmtPct = (n: number) => {
+  const v = cents(n)
+  return `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}%`
+}
 
 export function fmtVolume(n: number): string {
   if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`

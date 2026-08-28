@@ -3,8 +3,9 @@ import { motion } from 'framer-motion'
 import { useStore } from '../state/store'
 import { useQuotes } from '../lib/useQuote'
 import type { Point, Quote } from '../lib/types'
-import { changeOf, comfortSeries, isComforted } from '../lib/flip'
-import { fmtMoney, fmtPrice } from '../lib/format'
+import { applyComfort, changeOf, comfortOf, describeComfort, isComforted, type Distortion } from '../lib/flip'
+import { basisOf, missingBasis, positionAt, returnOf, totalCost, type Return } from '../lib/position'
+import { cents, fmtMoney, fmtPrice, fmtSigned } from '../lib/format'
 import { Sparkline } from '../components/Sparkline'
 import { Button, ChangeBadge, Card, SectionLabel, SimulatedChip, Skeleton } from '../components/ui'
 import { useHold } from '../lib/useHold'
@@ -45,16 +46,40 @@ function portfolioSeries(quotes: Quote[], shares: Record<string, number>): Point
   }))
 }
 
-export function Portfolio({ onReveal }: { onReveal: (v: boolean) => void }) {
+export function Portfolio({
+  onReveal,
+}: {
+  onReveal: (revealing: boolean, distortion: Distortion) => void
+}) {
   const { holdings, mode, go } = useStore()
   const tickers = useMemo(() => holdings.map((h) => h.ticker), [holdings])
   const { quotes, loading } = useQuotes(tickers, '1D')
 
   const shares = useMemo(() => Object.fromEntries(holdings.map((h) => [h.ticker, h.shares])), [holdings])
+  const basis = useMemo(
+    () => Object.fromEntries(holdings.map((h) => [h.ticker, basisOf(h)])) as Record<string, number | null>,
+    [holdings],
+  )
 
   const total = useMemo(() => portfolioSeries(quotes, shares), [quotes, shares])
-  const totalShown = useMemo(() => comfortSeries(total, mode), [total, mode])
-  const totalComforted = isComforted(total, mode)
+
+  /**
+   * What the whole portfolio cost, or null when any holding has no entry price. The total
+   * series is in dollars rather than in a price per share, so the same reflection applies
+   * with the total cost as its anchor: mirror the portfolio about what it cost you.
+   */
+  const cost = useMemo(
+    () => totalCost(quotes.map((q) => ({ shares: shares[q.ticker] ?? 0, basis: basis[q.ticker] }))),
+    [quotes, shares, basis],
+  )
+  const unpriced = useMemo(
+    () => missingBasis(quotes.map((q) => ({ shares: shares[q.ticker] ?? 0, basis: basis[q.ticker] }))),
+    [quotes, shares, basis],
+  )
+
+  const totalComfort = useMemo(() => comfortOf(total, mode, cost), [total, mode, cost])
+  const totalShown = useMemo(() => applyComfort(total, totalComfort), [total, totalComfort])
+  const totalComforted = totalComfort.kind !== 'none'
 
   const { held: totalHeld, handlers: totalHold } = useHold()
   /** Latched by the button, so the flip is repeatable without holding anything down. */
@@ -63,25 +88,43 @@ export function Portfolio({ onReveal }: { onReveal: (v: boolean) => void }) {
   const [rowHeld, setRowHeld] = useState<string | null>(null)
 
   const totalTruth = (totalHeld || totalFlipped) && totalComforted
-  const revealing = totalTruth || ((rowHeld !== null || revealAll) && quotes.some((q) => isComforted(q.points, mode)))
-
-  // Keep the header badge in sync with whatever gesture is happening.
-  useEffect(() => onReveal(revealing), [revealing, onReveal])
+  const anyComforted = useMemo(
+    () => quotes.some((q) => isComforted(q.points, mode, basis[q.ticker])),
+    [quotes, mode, basis],
+  )
+  const revealing = totalTruth || ((rowHeld !== null || revealAll) && anyComforted)
 
   const series = totalTruth ? total : totalShown
   const shownChange = changeOf(series)
   const value = series[series.length - 1]?.p ?? 0
+  // Every figure on this card is read off the series that is actually drawn, including
+  // the return: one displayed portfolio, not one displayed portfolio and a separate lie
+  // about what it is worth.
+  const ret = cost === null ? null : returnOf(value, cost)
 
   const rows = useMemo(() => {
     const enriched = quotes.map((q) => {
-      const display = comfortSeries(q.points, mode)
-      return { quote: q, display, change: changeOf(display), real: changeOf(q.points) }
+      const comfort = comfortOf(q.points, mode, basis[q.ticker])
+      const display = applyComfort(q.points, comfort)
+      return { quote: q, display, kind: comfort.kind, change: changeOf(display), real: changeOf(q.points) }
     })
     return enriched.sort((a, b) => b.change.pct - a.change.pct)
-  }, [quotes, mode])
+  }, [quotes, mode, basis])
+
+  /**
+   * One badge, many charts. It reports the most severe thing being done anywhere on the
+   * screen: a reflection inverts direction, a lift only moves the level, and a screen
+   * where nothing needed adjusting says so rather than claiming a mirror it did not use.
+   */
+  const distortion = useMemo<Distortion>(() => {
+    const kinds = new Set<Distortion>([totalComfort.kind, ...rows.map((r) => r.kind)])
+    return (['reflect', 'shift', 'ascend'] as const).find((k) => kinds.has(k)) ?? 'none'
+  }, [totalComfort, rows])
+
+  // Keep the header badge in sync with whatever gesture is happening.
+  useEffect(() => onReveal(revealing, distortion), [revealing, distortion, onReveal])
 
   const substituted = useMemo(() => quotes.filter((q) => q.substituted).map((q) => q.ticker), [quotes])
-  const anyComforted = useMemo(() => quotes.some((q) => isComforted(q.points, mode)), [quotes, mode])
   const onRowHold = useCallback((ticker: string, held: boolean) => setRowHeld(held ? ticker : null), [])
 
   if (loading && !quotes.length) return <PortfolioSkeleton />
@@ -114,6 +157,28 @@ export function Portfolio({ onReveal }: { onReveal: (v: boolean) => void }) {
               <span className="text-[13px] text-pbx-400">today</span>
             </div>
 
+            {/* The number that actually hurts: not the day, the whole holding. */}
+            <div className="mt-4 border-t border-pbx-800 pt-4">
+              {ret ? (
+                <>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[11px] font-semibold tracking-[0.14em] text-pbx-400 uppercase">
+                      Total return
+                    </span>
+                    <ChangeBadge pct={ret.pct} abs={ret.gain} size="sm" />
+                  </div>
+                  <p className="mt-1.5 text-[11.5px] text-pbx-500">Cost {fmtMoney(ret.cost)}</p>
+                </>
+              ) : (
+                <p className="text-[11.5px] leading-relaxed text-pbx-500">
+                  {unpriced === 1
+                    ? 'One holding has no cost basis, so there is no total return to report.'
+                    : `${unpriced} holdings have no cost basis, so there is no total return to report.`}{' '}
+                  Add what you paid in Settings.
+                </p>
+              )}
+            </div>
+
             {totalComforted ? (
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 <Button
@@ -128,8 +193,14 @@ export function Portfolio({ onReveal }: { onReveal: (v: boolean) => void }) {
               </div>
             ) : (
               <p className="mt-5 text-[12.5px] text-pbx-500">
-                Up today. Nothing needed adjusting.
+                Up today{cost === null ? '' : ' and up on the whole position'}. Nothing needed adjusting.
               </p>
+            )}
+
+            {/* Names the operation, not the genre. A total that was lifted has not been
+                mirrored, and the app does not get to describe it as if it had. */}
+            {totalComforted && !totalTruth && (
+              <p className="mt-3 text-[11.5px] leading-relaxed text-pbx-500">{describeComfort(totalComfort)}</p>
             )}
 
             {substituted.length > 0 && (
@@ -177,6 +248,7 @@ export function Portfolio({ onReveal }: { onReveal: (v: boolean) => void }) {
                 key={quote.ticker}
                 quote={quote}
                 shares={shares[quote.ticker] ?? 0}
+                basis={basis[quote.ticker]}
                 displayChange={change}
                 realChange={real}
                 display={display}
@@ -200,6 +272,7 @@ export function Portfolio({ onReveal }: { onReveal: (v: boolean) => void }) {
 function Row({
   quote,
   shares,
+  basis,
   display,
   displayChange,
   realChange,
@@ -210,6 +283,7 @@ function Row({
 }: {
   quote: Quote
   shares: number
+  basis: number | null
   display: Point[]
   displayChange: { pct: number; abs: number }
   realChange: { pct: number; abs: number }
@@ -219,21 +293,26 @@ function Row({
   onHold: (ticker: string, held: boolean) => void
 }) {
   const { held: isHeld, handlers } = useHold(onOpen)
-  const comforted = isComforted(quote.points, mode)
+  const comforted = isComforted(quote.points, mode, basis)
   const revealing = (isHeld || forceReveal) && comforted
 
   useEffect(() => onHold(quote.ticker, isHeld && comforted), [isHeld, comforted, onHold, quote.ticker])
 
   const last = revealing ? quote.points[quote.points.length - 1].p : (display[display.length - 1]?.p ?? 0)
   const change = revealing ? realChange : displayChange
+  // Read off whichever price is on screen, so the row never contradicts its own sparkline.
+  const ret: Return | null = basis === null ? null : positionAt(last, shares, basis)
+  const realRet = basis === null ? null : positionAt(quote.points[quote.points.length - 1].p, shares, basis)
 
   return (
     <div
       role="button"
       tabIndex={0}
       aria-label={`${quote.ticker}, ${quote.name}. Real change today: ${realChange.pct >= 0 ? 'up' : 'down'} ${Math.abs(realChange.pct).toFixed(2)} percent.${
-        quote.substituted ? ' Simulated data: real prices were unavailable.' : ''
-      }`}
+        realRet
+          ? ` Real total return: ${realRet.gain >= 0 ? 'up' : 'down'} ${fmtSigned(Math.abs(realRet.gain))}, ${Math.abs(realRet.pct).toFixed(2)} percent on a cost of ${fmtPrice(basis!)} a share.`
+          : ''
+      }${quote.substituted ? ' Simulated data: real prices were unavailable.' : ''}`}
       className={`flex min-h-16 cursor-pointer items-center gap-4 px-4 py-3.5 no-select transition-colors ${
         isHeld ? 'bg-pbx-800' : 'hover:bg-pbx-800/60'
       }`}
@@ -245,12 +324,25 @@ function Row({
           <span className="hidden truncate text-[12.5px] text-pbx-400 sm:inline">{quote.name}</span>
           {quote.substituted && <SimulatedChip />}
         </div>
-        <span className="text-[12px] text-pbx-500">
-          {shares} {shares === 1 ? 'share' : 'shares'}
+        {/* Two atomic facts rather than one sentence: a phone has no room for both on
+            one line, and this wraps between them instead of through the middle of the
+            figure. */}
+        <span className="flex flex-wrap items-baseline gap-x-2 text-[12px] text-pbx-500">
+          <span>
+            {shares} {shares === 1 ? 'share' : 'shares'}
+          </span>
+          {ret && (
+            <span className="whitespace-nowrap">
+              <span className={`tnum font-mono ${cents(ret.gain) >= 0 ? 'text-up-400' : 'text-down-400'}`}>
+                {fmtSigned(ret.gain)}
+              </span>{' '}
+              total
+            </span>
+          )}
         </span>
       </div>
 
-      <Sparkline points={quote.points} mode={mode} reveal={isHeld || forceReveal} />
+      <Sparkline points={quote.points} mode={mode} basis={basis} reveal={isHeld || forceReveal} />
 
       <div className="flex w-[104px] flex-col items-end gap-1">
         <span className="tnum font-mono text-[15px] text-pbx-white">{fmtPrice(last)}</span>
@@ -270,7 +362,7 @@ function PortfolioSkeleton() {
       <div className="grid gap-8 lg:grid-cols-[320px_1fr] lg:items-start">
         <div>
           <Skeleton className="mb-3 h-3 w-28" />
-          <Skeleton className="h-[196px] w-full" />
+          <Skeleton className="h-[248px] w-full" />
         </div>
         <div>
           <Skeleton className="mb-3 h-3 w-20" />

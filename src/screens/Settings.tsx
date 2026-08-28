@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
 import { COMFORT_MODES } from '../lib/flip'
+import type { Holding } from '../lib/types'
 import { Card } from '../components/ui'
 import { source } from '../lib/data'
 import { FIXTURES } from '../lib/mock'
@@ -18,42 +19,51 @@ function nameFor(ticker: string): string {
 
 type Hit = { ticker: string; name: string }
 
-/** Ticker lookup by name or symbol — nobody remembers that Alphabet is GOOGL and GOOG. */
+/**
+ * Ticker lookup by name or symbol — nobody remembers that Alphabet is GOOGL and GOOG.
+ *
+ * Hits are stored with the query that produced them and matched against the current one
+ * during render, which both drops a slow response that lost the race to a newer keystroke
+ * and clears the list on a query too short to search, without a second render to do it.
+ */
 function useSearch(query: string) {
-  const [hits, setHits] = useState<Hit[]>([])
-  const seq = useRef(0)
+  const q = query.trim()
+  const [result, setResult] = useState<{ q: string; hits: Hit[] } | null>(null)
 
   useEffect(() => {
-    const q = query.trim()
-    if (q.length < 2) {
-      setHits([])
-      return
-    }
-    const mine = ++seq.current
+    if (q.length < 2) return
+    let live = true
     const timer = setTimeout(() => {
-      source.search(q).then((results) => {
-        // Ignore a slow response that lost the race to a newer keystroke.
-        if (seq.current === mine) setHits(results.slice(0, 6))
+      source.search(q).then((hits) => {
+        if (live) setResult({ q, hits: hits.slice(0, 6) })
       })
     }, 250)
-    return () => clearTimeout(timer)
-  }, [query])
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [q])
 
-  return hits
+  return result?.q === q ? result.hits : []
 }
 
+const NUMERIC = 'tnum w-[86px] shrink-0 border border-pbx-700 bg-pbx-panel min-h-11 px-2.5 py-2.5 text-right font-mono text-[13.5px] text-pbx-white placeholder:font-sans placeholder:text-[12.5px] placeholder:text-pbx-500 focus:border-pbx-600 focus:outline-none'
+
 export function Settings() {
-  const { mode, setMode, holdings, addHolding, removeHolding, reset } = useStore()
+  const { mode, setMode, holdings, addHolding, updateHolding, removeHolding, reset } = useStore()
   const [query, setQuery] = useState('')
   const [shares, setShares] = useState('10')
+  const [cost, setCost] = useState('')
   const hits = useSearch(query)
 
   const add = (ticker: string) => {
     const t = ticker.trim().toUpperCase()
     if (!t) return
-    addHolding(t, Number(shares) || 1)
+    const basis = Number(cost)
+    addHolding(t, Number(shares) || 1, Number.isFinite(basis) && basis > 0 ? basis : undefined)
     setQuery('')
     setShares('10')
+    setCost('')
   }
 
   const submit = (e: React.FormEvent) => {
@@ -105,18 +115,20 @@ export function Settings() {
         Holdings
       </h2>
       <Card className="mb-3 divide-y divide-pbx-800 overflow-hidden">
+        <div className="flex items-center gap-3 bg-pbx-800/40 px-4 py-2 text-[10.5px] tracking-[0.14em] text-pbx-500 uppercase">
+          <span className="flex-1">Symbol</span>
+          <span className="w-[86px] text-right">Shares</span>
+          <span className="w-[86px] text-right">Avg cost</span>
+          <span className="w-[64px]" />
+        </div>
         {holdings.map((h) => (
-          <div key={h.ticker} className="flex items-center gap-3 px-4 py-3">
-            <span className="w-16 shrink-0 text-[14px] font-semibold text-pbx-white">{h.ticker}</span>
-            <span className="flex-1 truncate text-[13px] text-pbx-400">{nameFor(h.ticker)}</span>
-            <span className="tnum font-mono text-[13px] text-pbx-200">{h.shares}</span>
-            <button
-              onClick={() => removeHolding(h.ticker)}
-              className="min-h-11 px-2.5 text-[12.5px] text-pbx-400 transition-colors hover:bg-pbx-800 hover:text-down-400"
-            >
-              Remove
-            </button>
-          </div>
+          <HoldingRow
+            key={h.ticker}
+            holding={h}
+            name={nameFor(h.ticker)}
+            onUpdate={(patch) => updateHolding(h.ticker, patch)}
+            onRemove={() => removeHolding(h.ticker)}
+          />
         ))}
         {!holdings.length && (
           <p className="px-4 py-6 text-center text-[13px] text-pbx-400">
@@ -125,14 +137,28 @@ export function Settings() {
         )}
       </Card>
 
+      <p className="mb-4 text-[12px] leading-relaxed text-pbx-500">
+        Average cost is what the comfort transform anchors on: underwater, the chart is mirrored about
+        the price you paid rather than about the open, so the loss comes back as a gain of exactly the
+        same size. Leave it blank and the app can only comfort you about today.
+        {source.real && (
+          <>
+            {' '}
+            The entry prices in the starting portfolio are invented, and the market prices they are
+            measured against are real — replace them with what you actually paid, or the return is
+            fiction with a real chart attached.
+          </>
+        )}
+      </p>
+
       <form onSubmit={submit} className="mb-3">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={source.real ? 'Ticker or company name' : 'TICKER'}
             aria-label="Ticker or company name"
-            className="min-w-0 flex-1 border border-pbx-700 bg-pbx-panel min-h-11 px-3 py-2.5 text-[14px] text-pbx-white placeholder:text-pbx-400 focus:border-pbx-600 focus:outline-none"
+            className="min-w-[140px] flex-1 border border-pbx-700 bg-pbx-panel min-h-11 px-3 py-2.5 text-[14px] text-pbx-white placeholder:text-pbx-400 focus:border-pbx-600 focus:outline-none"
           />
           <input
             value={shares}
@@ -140,7 +166,15 @@ export function Settings() {
             placeholder="Shares"
             aria-label="Shares"
             inputMode="numeric"
-            className="tnum w-24 shrink-0 border border-pbx-700 bg-pbx-panel min-h-11 px-3 py-2.5 text-[14px] text-pbx-white placeholder:text-pbx-400 focus:border-pbx-600 focus:outline-none"
+            className={NUMERIC}
+          />
+          <input
+            value={cost}
+            onChange={(e) => setCost(e.target.value.replace(/[^0-9.]/g, ''))}
+            placeholder="Avg cost"
+            aria-label="Average cost per share, optional"
+            inputMode="decimal"
+            className={NUMERIC}
           />
           <button
             type="submit"
@@ -182,7 +216,7 @@ export function Settings() {
         <p className="mt-3 text-[12.5px] leading-relaxed text-pbx-400">
           {source.real
             ? 'When a symbol cannot be fetched, its prices are simulated and labelled as such wherever they appear.'
-            : 'Any ticker you type gets a stable invented price history.'}
+            : 'Any ticker you type gets a stable invented price history, and the demo portfolio buys it a year ago at the price the simulator says it traded at then.'}
         </p>
       </Card>
 
@@ -191,6 +225,75 @@ export function Settings() {
         className="min-h-12 w-full border border-pbx-700 py-3 text-[14px] text-pbx-200 transition hover:border-down-500/60 hover:text-down-400"
       >
         Reset everything
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Shares and average cost are edited in place.
+ *
+ * Local text state rather than a controlled number: a half-typed "1." or a briefly empty
+ * field is a normal thing to pass through on the way to a real number, and neither should
+ * be pushed into the portfolio. Valid input commits as you type, and blur decides what an
+ * empty field meant — a cleared cost unsets it, a cleared share count reverts.
+ */
+function HoldingRow({
+  holding,
+  name,
+  onUpdate,
+  onRemove,
+}: {
+  holding: Holding
+  name: string
+  onUpdate: (patch: Partial<Omit<Holding, 'ticker'>>) => void
+  onRemove: () => void
+}) {
+  const [shares, setShares] = useState(String(holding.shares))
+  const [cost, setCost] = useState(holding.basis === undefined ? '' : String(holding.basis))
+
+  const commitShares = (raw: string) => {
+    setShares(raw)
+    const n = Number(raw)
+    if (raw !== '' && Number.isFinite(n) && n > 0) onUpdate({ shares: n })
+  }
+
+  const commitCost = (raw: string) => {
+    setCost(raw)
+    const n = Number(raw)
+    if (raw === '') onUpdate({ basis: undefined })
+    else if (Number.isFinite(n) && n > 0) onUpdate({ basis: n })
+  }
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5">
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-semibold text-pbx-white">{holding.ticker}</span>
+        {/* Two number fields and a Remove button leave a phone no room for a company
+            name, and three truncated characters of one are worse than none. */}
+        {name && <span className="hidden truncate text-[12px] text-pbx-400 sm:block">{name}</span>}
+      </span>
+      <input
+        value={shares}
+        onChange={(e) => commitShares(e.target.value.replace(/[^0-9]/g, ''))}
+        onBlur={() => shares === '' && setShares(String(holding.shares))}
+        aria-label={`Shares of ${holding.ticker}`}
+        inputMode="numeric"
+        className={NUMERIC}
+      />
+      <input
+        value={cost}
+        onChange={(e) => commitCost(e.target.value.replace(/[^0-9.]/g, ''))}
+        placeholder="Not set"
+        aria-label={`Average cost per share for ${holding.ticker}`}
+        inputMode="decimal"
+        className={NUMERIC}
+      />
+      <button
+        onClick={onRemove}
+        className="min-h-11 w-[64px] shrink-0 text-[12.5px] text-pbx-400 transition-colors hover:bg-pbx-800 hover:text-down-400"
+      >
+        Remove
       </button>
     </div>
   )

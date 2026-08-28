@@ -3,12 +3,17 @@ import { prefersReducedMotion } from '../lib/useSize'
 
 const COLORS = ['#21c97f', '#4ade9b', '#12a566', '#c8d0d8']
 
-/** Fires whenever `trigger` changes. Delulu mode only; every chart is a new high. */
-export function Confetti({ trigger }: { trigger: number }) {
+/**
+ * Fires whenever `trigger` changes, and not at all while it is null. Delulu mode only;
+ * every chart is a new high. The trigger names the chart being celebrated rather than
+ * counting bursts, so the screen can derive it during render instead of keeping a tally
+ * in state and incrementing it from an effect.
+ */
+export function Confetti({ trigger }: { trigger: string | null }) {
   const ref = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    if (trigger === 0) return
+    if (trigger === null) return
     const canvas = ref.current
     if (!canvas || prefersReducedMotion()) return
     const ctx = canvas.getContext('2d')

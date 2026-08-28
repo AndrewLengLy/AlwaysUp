@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import type { Point } from '../lib/types'
-import { changeOf, comfortSeries, isComforted, type ComfortMode } from '../lib/flip'
+import { applyComfort, changeOf, comfortOf, type ComfortMode } from '../lib/flip'
 import { areaPath, lerpArray, linePath, project } from '../lib/geometry'
 
 const UP = '#21c97f'
@@ -10,14 +10,17 @@ const DOWN = '#f2555a'
 type Props = {
   points: Point[]
   mode: ComfortMode
+  /** Average price paid per share, which is what the comfort transform anchors on. */
+  basis?: number | null
   reveal?: boolean
   width?: number
   height?: number
 }
 
-export function Sparkline({ points, mode, reveal = false, width = 96, height = 36 }: Props) {
-  const display = useMemo(() => comfortSeries(points, mode), [points, mode])
-  const comforted = isComforted(points, mode)
+export function Sparkline({ points, mode, basis, reveal = false, width = 96, height = 36 }: Props) {
+  const comfort = useMemo(() => comfortOf(points, mode, basis), [points, mode, basis])
+  const display = useMemo(() => applyComfort(points, comfort), [points, comfort])
+  const comforted = comfort.kind !== 'none'
   const plot = useMemo(() => ({ x: 1, y: 3, w: width - 2, h: height - 6 }), [width, height])
 
   const honest = useMemo(() => project(points, plot, 0.12), [points, plot])

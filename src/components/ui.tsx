@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { fmtPct, fmtSigned } from '../lib/format'
-import type { ComfortMode } from '../lib/flip'
+import { cents, fmtPct, fmtSigned } from '../lib/format'
+import type { ComfortMode, Distortion } from '../lib/flip'
 
 /**
  * Sharp corners throughout. The Parabox mark is a broken square with hard corners, and
@@ -29,7 +29,7 @@ export function ChangeBadge({
   size?: 'sm' | 'md' | 'lg'
   showAbs?: boolean
 }) {
-  const up = abs >= 0
+  const up = cents(abs) >= 0
   const cls = up ? 'text-up-400' : 'text-down-400'
   const text = size === 'lg' ? 'text-[17px]' : size === 'sm' ? 'text-[12.5px]' : 'text-[14px]'
 
@@ -66,9 +66,23 @@ function Arrow({ up }: { up: boolean }) {
  * where "Parody" only asks you to take the app's word for it. It is also in character,
  * which the sticker never was, so it can stay up permanently without the app having to
  * break stride to apologise for itself. Non-dismissible, in every mode.
+ *
+ * Which means it has to name the operation and not the setting. Comfort mode has three
+ * of them — a chart can be mirrored, moved bodily up the axis, or left alone because
+ * nothing on it was a loss — and a badge reading "Mirrored" over a chart that was lifted
+ * is exactly the kind of approximate disclosure this was built to replace. The screens
+ * report what they actually did.
  */
-export function ModeBadge({ mode, revealing }: { mode: ComfortMode; revealing: boolean }) {
-  const state = revealing ? REVEALED : BADGE[mode]
+export function ModeBadge({
+  mode,
+  revealing,
+  distortion = 'none',
+}: {
+  mode: ComfortMode
+  revealing: boolean
+  distortion?: Distortion
+}) {
+  const state = revealing ? REVEALED : badgeFor(mode, distortion)
 
   return (
     <motion.div
@@ -96,27 +110,48 @@ export function ModeBadge({ mode, revealing }: { mode: ComfortMode; revealing: b
 
 type BadgeState = { label: string; detail: string; dot: string }
 
+function badgeFor(mode: ComfortMode, distortion: Distortion): BadgeState {
+  if (mode !== 'comfort') return BADGE[mode]
+  if (distortion === 'reflect') return MIRRORED
+  if (distortion === 'shift') return LIFTED
+  return IDLE
+}
+
 const REVEALED: BadgeState = {
   label: 'Showing reality',
   detail: 'The real price action, unaltered.',
   dot: 'bg-down-500',
 }
 
-const BADGE: Record<ComfortMode, BadgeState> = {
+const MIRRORED: BadgeState = {
+  label: 'Mirrored',
+  detail:
+    'A losing chart is reflected — about the price you paid when the position is underwater, about the opening price otherwise — so a fall is drawn as a rise. Figures shown may be the exact opposite of what happened.',
+  dot: 'bg-up-500',
+}
+
+const LIFTED: BadgeState = {
+  label: 'Lifted',
+  detail:
+    'A chart a mirror cannot rescue — a green day on a position that is still underwater — has been moved bodily up the price axis to clear what you paid. Its shape is untouched and every price on it is wrong by the same amount.',
+  dot: 'bg-up-500',
+}
+
+const IDLE: BadgeState = {
+  label: 'Comfort',
+  detail: 'Comfort mode is on. Nothing on this screen is a loss, so nothing has been altered.',
+  dot: 'bg-pbx-500',
+}
+
+const BADGE: Record<Exclude<ComfortMode, 'comfort'>, BadgeState> = {
   honest: {
     label: 'Honest',
     detail: 'Charts are drawn as they happened. Nothing is altered.',
     dot: 'bg-pbx-500',
   },
-  comfort: {
-    label: 'Mirrored',
-    detail:
-      'Losing charts are reflected about the opening price, so a fall is drawn as a rise. Figures shown may be the exact opposite of what happened.',
-    dot: 'bg-up-500',
-  },
   delulu: {
     label: 'Delulu',
-    detail: 'Every chart is rebuilt to climb. What is drawn did not happen.',
+    detail: 'Every chart is rebuilt to climb, and lifted past what you paid if it has to be. What is drawn did not happen.',
     dot: 'bg-up-500',
   },
 }
