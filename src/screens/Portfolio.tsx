@@ -5,7 +5,7 @@ import { useQuotes } from '../lib/useQuote'
 import type { Point, Quote } from '../lib/types'
 import { applyComfort, changeOf, comfortOf, describeComfort, isComforted, type Distortion } from '../lib/flip'
 import { basisOf, missingBasis, positionAt, returnOf, totalCost, type Return } from '../lib/position'
-import { cents, fmtMoney, fmtPrice, fmtSigned } from '../lib/format'
+import { cents, fmtMoney, fmtPrice, fmtSigned, fmtSpokenReturn } from '../lib/format'
 import { Sparkline } from '../components/Sparkline'
 import { Button, ChangeBadge, Card, SectionLabel, SimulatedChip, Skeleton } from '../components/ui'
 import { useHold } from '../lib/useHold'
@@ -310,7 +310,7 @@ function Row({
       tabIndex={0}
       aria-label={`${quote.ticker}, ${quote.name}. Real change today: ${realChange.pct >= 0 ? 'up' : 'down'} ${Math.abs(realChange.pct).toFixed(2)} percent.${
         realRet
-          ? ` Real total return: ${realRet.gain >= 0 ? 'up' : 'down'} ${fmtSigned(Math.abs(realRet.gain))}, ${Math.abs(realRet.pct).toFixed(2)} percent on a cost of ${fmtPrice(basis!)} a share.`
+          ? ` Real total return: ${fmtSpokenReturn(realRet.gain, realRet.pct)} on a cost of ${fmtPrice(basis!)} a share.`
           : ''
       }${quote.substituted ? ' Simulated data: real prices were unavailable.' : ''}`}
       className={`flex min-h-16 cursor-pointer items-center gap-4 px-4 py-3.5 no-select transition-colors ${

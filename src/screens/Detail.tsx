@@ -14,7 +14,7 @@ import {
 } from '../lib/flip'
 import { basisOf, positionAt } from '../lib/position'
 import { lerp } from '../lib/geometry'
-import { cents, fmtMoney, fmtPct, fmtPrice, fmtSigned, fmtVolume, RANGE_LABEL } from '../lib/format'
+import { cents, fmtMoney, fmtPct, fmtPrice, fmtSigned, fmtSpokenReturn, fmtVolume, RANGE_LABEL } from '../lib/format'
 import { Chart } from '../components/Chart'
 import { Confetti } from '../components/Confetti'
 import { Card, SectionLabel, SimulatedChip, Skeleton, Stat } from '../components/ui'
@@ -140,7 +140,7 @@ export function Detail({
           <p className="sr-only">
             {`${quote.ticker}, ${quote.name}. Real price ${fmtPrice(realLast)}, a real change of ${realChange.pct >= 0 ? 'up' : 'down'} ${Math.abs(realChange.pct).toFixed(2)} percent ${RANGE_LABEL[range]}.`}
             {realPos &&
-              ` You hold ${shares} ${shares === 1 ? 'share' : 'shares'} at ${fmtPrice(basis!)}, so the real position is ${realPos.gain >= 0 ? 'up' : 'down'} ${fmtSigned(Math.abs(realPos.gain))}, ${Math.abs(realPos.pct).toFixed(2)} percent.`}
+              ` You hold ${shares} ${shares === 1 ? 'share' : 'shares'} at ${fmtPrice(basis!)}, so the real position is ${fmtSpokenReturn(realPos.gain, realPos.pct)}.`}
           </p>
 
           <div className="mt-7">

@@ -23,6 +23,19 @@ export const fmtSigned = (n: number) => {
   return `${v >= 0 ? '+' : '−'}${money.format(Math.abs(v))}`
 }
 
+/**
+ * A position for a sentence that has already said which way it went in words.
+ *
+ * The direction word and the figure beside it must not be able to disagree, so the figure
+ * carries no sign: the word says which way, the number says how far. Both are read off
+ * the same rounded value, for the reason `cents` gives — a loss too small to survive
+ * rounding reads as "up 0.00" rather than as "down" something that prints as nothing.
+ */
+export const fmtSpokenReturn = (gain: number, pct: number) => {
+  const g = cents(gain)
+  return `${g >= 0 ? 'up' : 'down'} ${fmtPrice(Math.abs(g))}, ${Math.abs(cents(pct)).toFixed(2)} percent`
+}
+
 export const fmtPct = (n: number) => {
   const v = cents(n)
   return `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}%`

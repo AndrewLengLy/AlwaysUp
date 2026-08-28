@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cents, fmtPct, fmtSigned } from './format'
+import { cents, fmtPct, fmtSigned, fmtSpokenReturn } from './format'
 
 describe('signing a figure at zero', () => {
   /**
@@ -29,3 +29,32 @@ describe('signing a figure at zero', () => {
   })
 })
 
+describe('a return spoken to a screen reader', () => {
+  /**
+   * The sentence has already said which way it went in words, so the figure beside it
+   * must not carry a sign of its own: "down +2,018.00" is a contradiction, and the
+   * accessibility layer is the one place this app does not get to be wrong.
+   */
+  it('states the direction in words and the size without a sign', () => {
+    expect(fmtSpokenReturn(-2018, -18.82)).toBe('down 2,018.00, 18.82 percent')
+    expect(fmtSpokenReturn(787.5, 14.34)).toBe('up 787.50, 14.34 percent')
+  })
+
+  it('never puts a sign character next to the direction word', () => {
+    for (const [gain, pct] of [
+      [-2018, -18.82],
+      [787.5, 14.34],
+      [-0.006, -0.01],
+      [0, 0],
+    ]) {
+      expect(fmtSpokenReturn(gain, pct)).not.toMatch(/[+−-]/)
+    }
+  })
+
+  it('agrees with the visible figure about which side of zero a rounding hair falls', () => {
+    // The same rule fmtSigned follows: decided on the number that gets printed, so a row
+    // cannot say "down" about a position the screen is showing as "+0.00".
+    expect(fmtSpokenReturn(-1e-9, -1e-9)).toBe('up 0.00, 0.00 percent')
+    expect(fmtSigned(-1e-9)).toBe('+0.00')
+  })
+})

@@ -193,7 +193,7 @@ npm run dev
 ```
 
 ```bash
-npm test        # 74 tests: the transform, the geometry, the position, the numbers, the Yahoo parser
+npm test        # 77 tests: the transform, the geometry, the position, the numbers, the Yahoo parser
 npm run build
 ```
 

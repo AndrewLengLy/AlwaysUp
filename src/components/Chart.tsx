@@ -12,7 +12,7 @@ import { applyComfort, changeOf, comfortOf, nextFlipTarget, type ComfortMode } f
 import { areaPath, clamp01, lerp, lerpArray, linePath, niceTicks, project } from '../lib/geometry'
 import { positionAt } from '../lib/position'
 import { useSize, prefersReducedMotion } from '../lib/useSize'
-import { fmtAxisTime, fmtPrice, fmtSigned, RANGE_LABEL } from '../lib/format'
+import { fmtAxisTime, fmtPrice, fmtSpokenReturn, RANGE_LABEL } from '../lib/format'
 import { MirrorControl } from './MirrorControl'
 
 const UP = '#21c97f'
@@ -413,7 +413,7 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
         <p className="sr-only">
           {`Actual price history, unmodified: opened at ${fmtPrice(real.from)}, last ${fmtPrice(real.to)}, a real change of ${real.pct >= 0 ? 'up' : 'down'} ${Math.abs(real.pct).toFixed(2)} percent. The chart above may be displaying a mirrored version of this data.`}
           {realPosition &&
-            ` Against a cost of ${fmtPrice(be!)} a share, the real position is ${realPosition.gain >= 0 ? 'up' : 'down'} ${fmtSigned(Math.abs(realPosition.gain))}, ${Math.abs(realPosition.pct).toFixed(2)} percent.`}
+            ` Against a cost of ${fmtPrice(be!)} a share, the real position is ${fmtSpokenReturn(realPosition.gain, realPosition.pct)}.`}
         </p>
       </div>
 
