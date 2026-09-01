@@ -1,0 +1,17 @@
+Most of the times I have opened a portfolio app it was not because a decision needed making. The number had moved, nothing else had, and I still sat there looking at a red line for longer than it was worth.
+
+Oftentimes the damage from checking is emotional rather than financial. The position is the same whether or not you look at it, and the only thing that really changes is how the rest of the day goes.
+
+So I built AlwaysUp, a portfolio viewer that refuses to show you a loss. When you are underwater it mirrors the chart about the price you paid, so the same shape and the same volatility come back climbing instead of falling, and the loss returns as a gain of exactly its own size. Down $2,017.93 in the video gets drawn as up $2,017.93.
+
+It also handles the case where that would make things worse. Where a red day on an underwater position can be mirrored about your cost and fixes the day and the year at once, a green day on that same position cannot, because the mirror would spend the day's gain to rescue the year. That one gets lifted clear of what you paid instead, and the badge in the header changes from Mirrored to Lifted so the two never get described as the same thing.
+
+The idea is that the joke only works if it never hides. The badge sits in the header in every mode and cannot be dismissed, screen readers get the real numbers on every screen, and you can drag the chart back to reality with your thumb and stop it anywhere in between. Park it half way and the line goes flat with both versions fading up either side of it, and the position reads exactly +0.00, which is the whole idea in one frame.
+
+Drawing the flip was the easy part, but deciding which comfort is allowed to be called a mirror, and making sure a chart that was only moved never claims it was reflected, was where most of the thinking went in this project.
+
+Important to note that while the video walks through the interface, it is not recorded from a running system and the prices in it are simulated. However the code is real and runs with npm run dev.
+
+Not investment advice, and not a basis for any decision.
+
+Repo is in the first comment :)
