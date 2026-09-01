@@ -192,8 +192,16 @@ npm run demo
 ```
 
 One command, no manual conversion step. It writes `demo/alwaysup-demo.mp4` — 1920x1080,
-62 seconds, H.264 at CRF 20, `yuv420p`, 25 fps, `+faststart`, and no audio track, because
+58 seconds, H.264 at CRF 20, `yuv420p`, 25 fps, `+faststart`, and no audio track, because
 the captions are burned into the frame and social feeds autoplay muted.
+
+There is no title card, no closing card and no camera. The app is shown whole, at one
+constant scale, from the first frame to the last: no pans, no push-ins, no cutting to an
+insert of the thing you are meant to notice. A demo that zooms does some of the noticing
+for you, and this app's entire argument is about what a picture quietly does to what you
+believe, so the frame stays put and the screen has to carry it. The scale is measured off
+the laid-out page rather than hard-coded, because the line under the chart is where a lift
+names itself and it must not fall off the bottom edge.
 
 The source is [`demo/index.html`](demo/index.html): one self-contained page that makes no
 network calls and loads no fonts, and reconstructs the UI from the same transforms the app

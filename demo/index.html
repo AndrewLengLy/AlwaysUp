@@ -181,16 +181,10 @@
   .ov { position: absolute; inset: 0; display: none; flex-direction: column; }
   .ov.show { display: flex; }
 
-  #titlecard { background: var(--black); padding: 92px 120px; }
-  .tc-name { font-size: 128px; font-weight: 700; letter-spacing: -0.045em; line-height: .9; }
-  .tc-claim { font-size: 46px; font-weight: 500; color: var(--c200); letter-spacing: -0.015em; line-height: 1.2; }
-  .tc-rule { height: 1px; background: var(--c800); }
-  .tc-meta { display: flex; align-items: center; gap: 20px; font-size: 21px; color: var(--c500); }
-  .tc-meta .mono { color: var(--c400); }
 
   /* the screen-reader panel */
   #srpanel { display: none; position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 84px 30px; background: var(--black); }
-  #srpanel::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 76px; background: linear-gradient(to bottom, rgba(10,10,10,0), var(--black)); }
+  #srpanel { border-top: 1px solid var(--c800); }
   #srpanel.show { display: block; }
   #srpanel .head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
   #srpanel .head b { font-size: 15px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--c400); }
@@ -227,7 +221,6 @@
       <div class="body" id="srtext"></div>
     </div>
     <div id="cursor"><div class="ring"></div></div>
-    <div class="ov" id="titlecard"></div>
   </div>
 
   <div id="capband">
@@ -678,34 +671,38 @@ function rectIn(node) {
 }
 
 /**
- * A shot: the region to keep in frame, as a centre and a scale.
+ * One frame, held for the whole video.
  *
- * The padded region is grown on whichever axis is short until it matches the stage's
- * aspect, so everything asked for is on screen and the frame is still filled. Without
- * that step a tall target — a card, a badge — gets framed on its width and loses its
- * own top and bottom.
+ * The app is shown whole, at a constant scale, from the first frame to the last: no
+ * pans, no push-ins, no cutting to an insert of the thing you are meant to notice. A
+ * demo that zooms does some of the noticing for you, and this app's entire argument is
+ * about what a picture quietly does to what you believe. So the frame stays put and
+ * the screen has to carry it on its own.
  */
-const STAGE_A = STAGE_W / STAGE_H
-function shot(sel, padX = 60, padY = 40, bias = null) {
-  const r = typeof sel === 'string' ? rectIn($(sel)) : sel
-  let w = r.w + padX * 2, h = r.h + padY * 2
-  if (w / h < STAGE_A) w = h * STAGE_A; else h = w / STAGE_A
-  return { cx: r.x + r.w / 2 + (bias ? bias[0] : 0), cy: r.y + r.h / 2 + (bias ? bias[1] : 0), s: STAGE_W / w }
+const APP_W = 1360
+const screenBottom = (sel) => { const r = rectIn($(sel)); return r.y + r.h }
+
+/**
+ * How tall the frame has to be: the tallest screen the video shows, measured.
+ *
+ * Hard-coding it clips the moment a caption under the chart wraps to a second line,
+ * and the line under the chart is where a lift names itself. Losing that off the
+ * bottom edge would drop the one sentence the app is obliged to say.
+ */
+function fitFrame() {
+  let h = 0
+  showScreen('pf'); paintPortfolio({}); h = Math.max(h, screenBottom('#pf'))
+  for (const tk of ['PLNGE', 'HODL']) { openDetail(tk); paintDetail(0); h = Math.max(h, screenBottom('#dt')) }
+  h += 24
+  return { cx: APP_W / 2, cy: h / 2, s: Math.min(STAGE_W / APP_W, STAGE_H / h) }
 }
 
-let CAM = { cx: 680, cy: 380, s: 1.2 }
+let FRAME = { cx: APP_W / 2, cy: 430, s: 1 }
+let CAM = FRAME
 function applyCam(c) {
   CAM = c
   app.style.transform = `translate(${(STAGE_W / 2 - c.cx * c.s).toFixed(2)}px, ${(STAGE_H / 2 - c.cy * c.s).toFixed(2)}px) scale(${c.s.toFixed(5)})`
 }
-/** Frame `rect` inside the top `frac` of the stage, leaving the rest for an overlay. */
-function shotTop(rect, padX, padY, frac) {
-  const w = rect.w + padX * 2, h = rect.h + padY * 2
-  const s = Math.min(STAGE_W / w, (STAGE_H * frac) / h)
-  return { cx: rect.x + rect.w / 2, cy: rect.y + rect.h / 2 + (STAGE_H * (1 - frac)) / (2 * s), s }
-}
-
-const camLerp = (a, b, k) => ({ cx: lerp(a.cx, b.cx, k), cy: lerp(a.cy, b.cy, k), s: a.s * Math.pow(b.s / a.s, clamp01(k)) })
 
 const cursorEl = $('#cursor')
 function cursor(appX, appY, down) {
@@ -824,21 +821,8 @@ function srTextFor(tk) {
   return `Actual price history, unmodified: opened at <u>${fmtPrice(real.from)}</u>, last <u>${fmtPrice(real.to)}</u>, a real change of <u>${real.pct >= 0 ? 'up' : 'down'} ${Math.abs(real.pct).toFixed(2)} percent</u>. The chart above may be displaying a mirrored version of this data. Against a cost of ${fmtPrice(basis)} a share, the real position is <u>${fmtSpokenReturn(p.gain, p.pct)}</u>.`
 }
 
-/* --- the title card ---------------------------------------------------------- */
-$('#titlecard').innerHTML = `
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px">
-    <div class="tc-name">AlwaysUp</div>
-    <div class="tc-claim">A portfolio viewer that refuses to show you a loss.<br>
-      When you are down, it mirrors the chart about the price you paid.</div>
-  </div>
-  <div class="tc-rule"></div>
-  <div class="tc-meta" style="padding-top:28px">
-    <span class="recon"><i></i>Reconstruction of the shipping UI</span>
-    <span class="mono">Simulated market data</span><span>&middot;</span><span>Andrew Ly</span>
-  </div>`
-
 /* ===========================================================================
-   6. The script. Eight scenes, 62 seconds, 25 fps.
+   6. The script. Seven scenes, 58 seconds, 25 fps.
    =========================================================================== */
 const FPS = 25
 const REAL_VALUE = TOTAL[TOTAL.length - 1].p
@@ -849,61 +833,28 @@ const PL_POS = positionAt(PL.real.to, SHARES.PLNGE, BASIS.PLNGE)
 const HODL_LIFT = comfortOf(Q.HODL.points, BASIS.HODL).delta
 const HODL_POS = positionAt(changeOf(Q.HODL.points).to, SHARES.HODL, BASIS.HODL)
 
-const union = (a, b) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.max(a.x + a.w, b.x + b.w) - Math.min(a.x, b.x), h: Math.max(a.y + a.h, b.y + b.h) - Math.min(a.y, b.y) })
 const centre = (sel) => { const r = rectIn($(sel)); return [r.x + r.w / 2, r.y + r.h / 2] }
-const hideCards = () => { $('#titlecard').classList.remove('show'); $('#srpanel').classList.remove('show') }
-
-let SHOTS = {}
-function shotsPortfolio() {
-  SHOTS.wide = shot(union(rectIn($('.hdr')), rectIn($('#rows'))), 30, 22)
-  SHOTS.total = shot('#total-card', 40, 14, [160, 0])
-  SHOTS.rows = shot(union(rectIn($('#rows').parentElement.querySelector('.lblrow')), rectIn($('#rows'))), 34, 18)
-}
-function shotsDetail() {
-  const head = union(rectIn($('#dt-tk').parentElement), rectIn($('#dt-chg').parentElement))
-  SHOTS.head = shot(head, 60, 34)
-  SHOTS.chart = shot(union(rectIn($('#chartbox')), rectIn($('.mirror'))), 34, 18, [70, 0])
-  /* An insert shot on the badge: the header band and nothing else. Framed off the
-     badge's own box so it stays clean if the header is edited. */
-  const bd = rectIn($('#badge'))
-  SHOTS.badge = shot({ x: bd.x - 78, y: -43, w: 349, h: 154 }, 0, 0)
-  SHOTS.note = shot(union(rectIn($('#chartbox')), rectIn($('#dt-note'))), 34, 18, [70, 0])
-  SHOTS.chartTop = shotTop(rectIn($('#chartbox')), 30, 18, 0.62)
-}
+const hideSrPanel = () => $('#srpanel').classList.remove('show')
 
 const SCENES = [
-  /* ---- 1. the thumbnail. Frame 0 is fully drawn: no fade, nothing to wait for. --- */
-  {
-    name: 'title', secs: 4,
-    enter() {
-      showScreen('pf'); paintPortfolio({}); shotsPortfolio(); applyCam(SHOTS.wide)
-      hideCards(); $('#titlecard').classList.add('show'); cursor(null)
-    },
-    at() {
-      caption(`Down <span class="down">${fmtMoney(-REAL_GAIN)}</span>. It draws that as up <span class="up">${fmtMoney(SHOWN_GAIN)}</span>.`)
-    },
-  },
-
-  /* ---- 2. the portfolio, comforted ---------------------------------------------- */
+  /* ---- 1. the portfolio, comforted ---------------------------------------------- */
   {
     name: 'portfolio', secs: 7,
-    enter() { hideCards(); showScreen('pf'); paintPortfolio({}); shotsPortfolio(); cursor(null) },
+    enter() { hideSrPanel(); showScreen('pf'); paintPortfolio({}); cursor(null) },
     at(k) {
-      applyCam(camLerp(SHOTS.wide, SHOTS.total, easeInOut(seg(k, 0.4, 0.92))))
       if (k < 0.4) caption('Six holdings. Nothing on this screen is red.')
       else caption(`Portfolio value <span class="up">${fmtMoney(TOTAL_COST + SHOWN_GAIN)}</span>. Up <span class="up">${fmtMoney(SHOWN_GAIN)}</span> since I bought.`)
     },
   },
 
-  /* ---- 3. one button says otherwise --------------------------------------------- */
+  /* ---- 2. one button says otherwise --------------------------------------------- */
   {
     name: 'reveal', secs: 8,
-    enter() { hideCards(); showScreen('pf'); shotsPortfolio(); applyCam(SHOTS.total) },
+    enter() { hideSrPanel(); showScreen('pf') },
     at(k) {
       const truth = k >= 0.12
       const revealAll = k >= 0.66
       const rowT = springK(seg(k, 0.66, 0.90), 0.9)
-      applyCam(camLerp(SHOTS.total, SHOTS.rows, easeInOut(seg(k, 0.5, 0.64))))
       paintPortfolio({ truth, revealAll, rowT, pressed: k >= 0.09 && k < 0.13 ? 'total' : k >= 0.63 && k < 0.67 ? 'reveal' : null })
 
       const [bx, by] = centre('#total-btn'), [rx, ry] = centre('#revealall')
@@ -917,22 +868,21 @@ const SCENES = [
     },
   },
 
-  /* ---- 4. one position, opened -------------------------------------------------- */
+  /* ---- 3. one position, opened -------------------------------------------------- */
   {
     name: 'open', secs: 5,
-    enter() { hideCards(); openDetail('PLNGE'); paintDetail(0); shotsDetail(); applyCam(SHOTS.head); cursor(null) },
+    enter() { hideSrPanel(); openDetail('PLNGE'); paintDetail(0); cursor(null) },
     at(k) {
       paintDetail(0)
-      applyCam(camLerp(SHOTS.head, SHOTS.chart, easeInOut(seg(k, 0.3, 0.85))))
       if (k < 0.46) caption(`Plunge Capital. Up <span class="up">${fmtPct(PL.shown.pct)}</span> today.`)
       else caption(`It fell <span class="down">${Math.abs(PL.real.pct).toFixed(2)}%</span>.`)
     },
   },
 
-  /* ---- 5. park the mirror half way. The whole idea in one frame. ----------------- */
+  /* ---- 4. park the mirror half way. The whole idea in one frame. ----------------- */
   {
     name: 'midflip', secs: 10,
-    enter() { hideCards(); openDetail('PLNGE'); shotsDetail(); applyCam(SHOTS.chart) },
+    enter() { hideSrPanel(); openDetail('PLNGE') },
     at(k) {
       const t = lerp(0, 0.5, easeInOut(seg(k, 0.12, 0.44)))
       paintDetail(t)
@@ -947,10 +897,10 @@ const SCENES = [
     },
   },
 
-  /* ---- 6. all the way across ---------------------------------------------------- */
+  /* ---- 5. all the way across ---------------------------------------------------- */
   {
     name: 'reality', secs: 6,
-    enter() { hideCards(); openDetail('PLNGE'); shotsDetail(); applyCam(SHOTS.chart) },
+    enter() { hideSrPanel(); openDetail('PLNGE') },
     at(k) {
       const t = lerp(0.5, 1, easeInOut(seg(k, 0.04, 0.36)))
       paintDetail(t)
@@ -961,15 +911,12 @@ const SCENES = [
     },
   },
 
-  /* ---- 7. the one it will not mirror -------------------------------------------- */
+  /* ---- 6. the one it will not mirror -------------------------------------------- */
   {
     name: 'lifted', secs: 11,
-    enter() { hideCards(); openDetail('HODL'); paintDetail(0); shotsDetail(); applyCam(SHOTS.chart); cursor(null) },
+    enter() { hideSrPanel(); openDetail('HODL'); paintDetail(0); cursor(null) },
     at(k) {
       paintDetail(0)
-      applyCam(k < 0.62
-        ? camLerp(SHOTS.chart, SHOTS.badge, easeInOut(seg(k, 0.44, 0.56)))
-        : camLerp(SHOTS.badge, SHOTS.note, easeInOut(seg(k, 0.62, 0.74))))
       if (k < 0.22) caption('Hodl Brothers. The day is green. The position is not.')
       else if (k < 0.46) caption("A mirror would spend the day's gain to rescue the year.")
       else if (k < 0.58) caption('So it will not use one.')
@@ -979,16 +926,15 @@ const SCENES = [
     },
   },
 
-  /* ---- 8. the joke is visual only ----------------------------------------------- */
+  /* ---- 7. the joke is visual only ----------------------------------------------- */
   {
     name: 'screenreader', secs: 11,
     enter() {
-      hideCards(); openDetail('PLNGE'); paintDetail(0); shotsDetail(); applyCam(SHOTS.chartTop)
+      hideSrPanel(); openDetail('PLNGE'); paintDetail(0)
       cursor(null); $('#srtext').innerHTML = srTextFor('PLNGE')
     },
     at(k) {
       paintDetail(0)
-      applyCam(SHOTS.chartTop)
       const panel = $('#srpanel')
       if (k >= 0.16) {
         panel.classList.add('show')
@@ -1040,6 +986,10 @@ window.__demo = {
     return { frame: this.frame, done: this.done, scene: current.scene.name }
   },
 }
+
+/* The frame is set once, from the laid-out page, and never touched again. */
+FRAME = fitFrame()
+applyCam(FRAME)
 
 /* Frame 0 is the thumbnail, so it is drawn before anything reports ready — and ready
    waits on the fonts, or the first frames go out in a fallback face. */
