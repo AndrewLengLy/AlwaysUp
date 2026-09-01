@@ -1,0 +1,213 @@
+================================================================================
+ALWAYSUP — LAUNCH POST
+Plain text. LinkedIn renders Markdown literally, so there are no asterisks,
+underscores or backticks anywhere below. Paste one variant, whole, as-is —
+each already ends with its hashtag line.
+
+                          characters    first line    LinkedIn limits
+  A  blunt (primary)           2,173            77    3,000 / 140
+  B  conversational            2,146            87
+  C  technical                 2,592           104
+================================================================================
+
+
+--------------------------------------------------------------------------------
+VARIANT A — BLUNT  (primary; post this one)
+2,173 characters including hashtags. First line 77 characters.
+--------------------------------------------------------------------------------
+
+A brokerage app measures today from yesterday's close, not the opening print.
+
+I got that detail right. Then I built the rest of the app to lie about it.
+
+AlwaysUp is a portfolio viewer that refuses to show you a loss.
+
+When you are underwater it mirrors the chart about the price you paid. p' = 2a - p. The anchor is a fixed point. The shape of the session is preserved exactly. The direction inverts.
+
+So the loss comes back as a gain of exactly its own size. In the video: down $2,017.93, drawn as up $2,017.93.
+
+Same shape. Same volatility. Green.
+
+The premise is that most of the damage from checking your portfolio is emotional rather than financial. So it removes the emotion and leaves the rest alone.
+
+The interesting part is what it refuses to do.
+
+It will not call a lift a mirror. A green day on an underwater position cannot be fixed by a reflection, because the mirror would spend the day's gain to rescue the year. So it translates instead. The badge reads Lifted, and a line under the chart names the amount. $33.13, in the video.
+
+It will not hide the badge. Mirrored, Lifted, Comfort, Honest. Non-dismissible, every screen, every mode.
+
+It will not lie to a screen reader. Every chart carries an unmodified description of the real price action and the real profit or loss. The animated figures are aria-hidden. The joke is visual only.
+
+It will not put an invented price under a real ticker unlabelled. Substituted data gets an amber Simulated chip, and no comfort mode removes it.
+
+Drag the mirror track to the middle and the line goes flat. Both versions fade up either side of the axis they are mirrored about. Break-even meets the fold. The position reads exactly +0.00.
+
+That is the whole idea in one frame.
+
+React, TypeScript, hand-rolled SVG. No chart library: the flip is a coordinate transform, and a library would only get in the way of it. 77 tests, mostly about the maths.
+
+The video is a reconstruction of the UI rather than a screen recording, and the market data in it is simulated. It says so on screen for all 68 seconds.
+
+Not investment advice. Not a basis for any decision.
+
+Repo in the first comment.
+
+#frontend #dataviz #accessibility
+
+
+--------------------------------------------------------------------------------
+VARIANT B — CONVERSATIONAL
+2,146 characters including hashtags. First line 87 characters.
+--------------------------------------------------------------------------------
+
+The first thing you learn building a quote screen: "today" starts at yesterday's close.
+
+The overnight gap is real movement and it belongs in the number. I got that part right.
+
+Then I spent a weekend making the chart lie about it.
+
+AlwaysUp is a portfolio viewer that refuses to show you a loss.
+
+Tell it what you paid. When you are underwater, it mirrors the chart about that price. p' = 2a - p, one line, and the whole app falls out of it.
+
+The shape survives. The direction does not. A loss comes back as a gain of exactly its own size — in the video, down $2,017.93 drawn as up $2,017.93.
+
+Most of the damage from checking your portfolio is emotional rather than financial. This removes the emotion and leaves the rest alone.
+
+The part I actually enjoyed building is the part where it says no.
+
+It will not call a lift a mirror. If the day is green but the position is underwater, a reflection would spend the day's gain to rescue the year. So it moves the axis instead, the badge changes from Mirrored to Lifted, and a line under the chart tells you it moved $33.13.
+
+It will not hide that badge. It sits in the header in every mode and cannot be dismissed, so every screenshot carries what was done to it.
+
+It will not lie to a screen reader. The animated numbers are aria-hidden and there is an unmodified description underneath with the real figures in it.
+
+It will not draw an invented price under a real ticker without an amber Simulated chip on it.
+
+My favourite frame is the one where you park the mirror half way. The line goes flat, both versions fade up either side of the fold, break-even lands on that same line, and the position reads exactly +0.00.
+
+React, TypeScript, hand-rolled SVG. No chart library — the flip is a coordinate transform and a library would only get in the way. 77 tests, mostly about the maths rather than the joke.
+
+One thing to be straight about: the video is a reconstruction of the UI, not a screen recording, and its market data is simulated. That is on screen for all 68 seconds.
+
+Not investment advice, and not a basis for any decision.
+
+Repo in the first comment.
+
+#frontend #dataviz #accessibility
+
+
+--------------------------------------------------------------------------------
+VARIANT C — TECHNICAL
+2,592 characters including hashtags. First line 104 characters.
+--------------------------------------------------------------------------------
+
+The 1D series is anchored to the previous close, not the open, so the overnight gap lands in the change.
+
+That also puts the reflection's fixed point on the previous close, which is the only reason a mirrored down day inverts the whole session instead of quietly keeping what was lost before the bell.
+
+AlwaysUp is a portfolio viewer that refuses to show you a loss.
+
+The transform is one line. p' = 2a - p. Reflect the series about a level. The anchor is a fixed point, the shape is preserved exactly, the direction inverts.
+
+Reflect about a level that means something — the open, or your cost basis — and the lie stays coherent: rescale the y-axis to the reflected values and every tick, high and low lands on a number that could plausibly have traded.
+
+A property falls out of it. The reflected series spans the same vertical distance as the original, so its projection into pixels is an exact mirror, y' = plotHeight - y, whatever the anchor. The flip animation is a true reflection rather than an approximation. There is a test for it.
+
+Outside the joke mode, every comfort is an isometry of the price axis, and a line has exactly two. A reflection inverts direction. A translation does not.
+
+Which one is in force falls out of what needs rescuing. Down position on a down day: reflect about your cost, and one reflection fixes the day and the P&L together. Down position on a green day: a reflection would spend the day's gain, so it translates to clear your cost instead.
+
+The app is not allowed to describe one as the other. The badge reads Lifted rather than Mirrored, and a line under the chart names the operation and the amount — $33.13 in the video.
+
+A translation is invisible on a self-scaled axis, which is exactly why it gets a sentence instead of a shrug.
+
+In pixel space the fold is the plot's horizontal midline, whatever the anchor was. Park the mirror track at 50% and the line goes flat, both versions fade up either side of it, break-even meets the fold, and the position reads exactly +0.00. That axis is only drawn when the transform genuinely is a reflection.
+
+Screen readers get the real numbers. The animated figures are aria-hidden with a static truthful summary beside them.
+
+React, TypeScript, hand-rolled SVG, Framer Motion. No chart library. 77 tests.
+
+The video is a reconstruction of the UI rather than a screen recording, and the market data in it is the project's own simulator on a frozen clock. It says so on screen for all 68 seconds.
+
+Not investment advice. Not a basis for any decision.
+
+Repo in the first comment.
+
+#frontend #dataviz #accessibility
+
+
+================================================================================
+FIRST COMMENT (post immediately after the post goes live, from your own account)
+================================================================================
+
+Repo, with the maths written up properly: https://github.com/AndrewLengLy/AlwaysUp
+
+The transform is src/lib/flip.ts. The pixel-space proof is src/lib/geometry.test.ts.
+
+^ Taken from the origin remote. Do not move this link into the body: a bare
+  external link in the post body suppresses reach.
+
+
+================================================================================
+POSTING MECHANICS
+================================================================================
+
+1. Upload demo/alwaysup-demo.mp4 natively through LinkedIn's video button.
+   Never link out to YouTube or Vimeo — an external video link is treated as an
+   outbound link and gets the same reach penalty as a bare URL.
+
+2. Paste the post body. Check the preview on mobile: the first line must not
+   truncate. All three variants are under the 140-character cut.
+
+3. Post. Then immediately add the first comment with the repo link.
+
+4. The hashtag line is already at the end of each variant. Three is enough.
+   The accessibility tag is the one that earns the screen-reader paragraph its
+   place. Those readers will check, which is the other reason the disclosure
+   about the reconstruction is in the body and not only in the video.
+
+5. Do not edit the post for the first hour. Edits reset distribution.
+
+
+================================================================================
+VIDEO SPECS (as produced by `npm run demo`)
+================================================================================
+
+File          demo/alwaysup-demo.mp4
+Resolution    1920 x 1080  (16:9)
+Duration      68.0 s       (LinkedIn accepts 3 s to 15 min)
+Frame rate    25 fps constant, 1700 frames
+Video         H.264, High profile, level 4.0, CRF 20, yuv420p, bt709
+Audio         none — the file has a single stream, and the captions are burned
+              into the frame because feeds autoplay muted
+Streaming     +faststart, so the moov atom is ahead of the mdat and it plays
+              before the whole file has downloaded
+Size          ~4.9 MB   (LinkedIn's limit is 5 GB; nowhere near it)
+Thumbnail     frame 0 carries the name and the claim, so the still LinkedIn
+              picks by default is already the right one. Do not upload a
+              custom thumbnail.
+
+Regenerate with:  npm run demo
+CHROMIUM_PATH and FFMPEG_PATH override the browser and encoder.
+
+
+================================================================================
+NOTES
+================================================================================
+
+Expiry. The hook is not seasonal and nothing in it dates. The video shows clock
+times and no calendar dates, and the simulator runs on a frozen clock, so the
+same file is correct whenever you post it.
+
+One figure will drift: "77 tests" appears in the post and in the video's closing
+caption. If you add tests, run npm test, update the number in demo/index.html,
+and re-run npm run demo before posting.
+
+The disclosure is not optional. The video is a reconstruction rather than a
+screen recording, and the tickers in it — PLNGE, HODL, ASCND — are the project's
+own fictional fixtures. People in these hashtags will notice; being corrected in
+the comments costs far more than the two sentences it takes to say so first.
+
+$2,017.93 and $33.13 are the demo portfolio's numbers, on simulated data. Both
+are qualified with "in the video" in every variant. Leave that qualifier in.

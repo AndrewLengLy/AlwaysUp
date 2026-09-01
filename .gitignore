@@ -28,3 +28,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Demo video: demo/index.html and scripts/record-demo.mjs are the source,
+# `npm run demo` regenerates the mp4 and its intermediate frames.
+demo/.frames/
+demo/*.mp4

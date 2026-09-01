@@ -185,6 +185,37 @@ appears: an amber **Simulated** chip on the holding row and the detail header, a
 the portfolio total naming every symbol it affected, and a note in the accessible name of
 the row. There is no comfort mode in which that label goes away.
 
+## The demo video
+
+```bash
+npm run demo
+```
+
+One command, no manual conversion step. It writes `demo/alwaysup-demo.mp4` — 1920x1080,
+68 seconds, H.264 at CRF 20, `yuv420p`, 25 fps, `+faststart`, and no audio track, because
+the captions are burned into the frame and social feeds autoplay muted.
+
+The source is [`demo/index.html`](demo/index.html): one self-contained page that makes no
+network calls and loads no fonts, and reconstructs the UI from the same transforms the app
+ships — `flip.ts`, `geometry.ts`, `format.ts` and the `mock.ts` simulator on a frozen
+clock. Every figure in the video is computed the way the app computes it, so the video and
+the app cannot disagree about what a mirror does to a number.
+
+[`scripts/record-demo.mjs`](scripts/record-demo.mjs) drives it. The page owns the timeline
+and exposes `window.__demo.next()`; the recorder steps one frame at a time and stops when
+the page sets `done`, rather than on a wall-clock timeout, so a slow machine gets the same
+video as a fast one instead of a truncated one. Frames are captured deterministically
+rather than screen-grabbed, so the output is exactly 25 fps with nothing dropped. If the
+page makes a network request or throws, the recorder refuses to encode.
+
+`CHROMIUM_PATH` and `FFMPEG_PATH` override the browser and encoder if the bundled ones are
+not what you want.
+
+It is a reconstruction rather than a screen recording, and it says so — in the window
+chrome and appended to every caption, for the full runtime, because every caption is
+written through one function that appends it. The tickers are the simulator's fictional
+ones, so nothing invented for the video wears a real company's name.
+
 ## Running it
 
 ```bash

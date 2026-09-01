@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AlwaysUp — demo reconstruction</title>
+<!--
+  A reconstruction of the AlwaysUp UI, built to be filmed.
+
+  It makes no network calls and loads no fonts, so it renders identically on any machine
+  with a Chromium: the recorder in scripts/record-demo.mjs steps it frame by frame and
+  hands the frames to ffmpeg. Everything on screen is computed here from the same
+  transforms the app ships — src/lib/flip.ts, src/lib/geometry.ts, src/lib/format.ts,
+  src/lib/mock.ts — rather than copied out of a screenshot, so the numbers in the video
+  are the numbers the app would print.
+
+  It is a reconstruction and not a screen recording, and it says so in the chrome and in
+  every caption, for the whole runtime. The market data is the app's own simulator on a
+  frozen clock: fictional tickers, so nothing invented here wears a real company's name.
+-->
+<style>
+  :root {
+    --black: #0a0a0a;
+    --panel: #101010;
+    --c800: #1f1f1f;
+    --c700: #2a2a2a;
+    --c600: #3a3a3a;
+    --c500: #808080;
+    --c400: #9ca3af;
+    --c200: #d4d4d4;
+    --white: #fafafa;
+    --up400: #4ade9b;
+    --up500: #21c97f;
+    --up600: #12a566;
+    --down400: #ff8085;
+    --down500: #f2555a;
+    --warn400: #f0bd6b;
+    --warn500: #e8a33d;
+    --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 1920px; height: 1080px; overflow: hidden;
+    background: #000; color: var(--white);
+    font-family: var(--sans); -webkit-font-smoothing: antialiased;
+  }
+
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+  .mono { font-family: var(--mono); }
+
+  #frame { position: relative; width: 1920px; height: 1080px; background: var(--black); }
+
+  /* ---- window chrome: whose screen this is, and what it is ---------------------- */
+  #chrome {
+    position: absolute; inset: 0 0 auto 0; height: 48px;
+    display: flex; align-items: center; gap: 18px; padding: 0 28px;
+    border-bottom: 1px solid var(--c800); background: #070707;
+  }
+  #chrome .dots { display: flex; gap: 8px; }
+  #chrome .dots i { width: 11px; height: 11px; border-radius: 50%; background: var(--c700); display: block; }
+  #chrome .url {
+    font-family: var(--mono); font-size: 15px; color: var(--c500);
+    border: 1px solid var(--c800); background: var(--panel); padding: 5px 16px;
+  }
+  #chrome .who { margin-left: auto; display: flex; align-items: center; gap: 11px; font-size: 15px; color: var(--c200); }
+  #chrome .who .av {
+    width: 26px; height: 26px; background: var(--c700); color: var(--white);
+    display: grid; place-items: center; font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+  }
+  .recon {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--warn500); background: rgba(232,163,61,.12);
+    color: var(--warn400); font-size: 12px; font-weight: 700;
+    letter-spacing: .16em; text-transform: uppercase; padding: 5px 11px; white-space: nowrap;
+  }
+  .recon i { width: 6px; height: 6px; background: var(--warn500); display: block; }
+
+  /* ---- stage: the app, under a camera ------------------------------------------ */
+  #stage { position: absolute; left: 0; top: 48px; width: 1920px; height: 852px; overflow: hidden; background: var(--black); }
+  #app {
+    position: absolute; left: 0; top: 0; width: 1360px; height: 760px;
+    transform-origin: 0 0; background: var(--black);
+  }
+
+  /* ---- caption band ------------------------------------------------------------ */
+  #capband {
+    position: absolute; left: 0; top: 900px; width: 1920px; height: 180px;
+    border-top: 1px solid var(--c800); background: var(--black);
+    display: flex; flex-direction: column; justify-content: center; padding: 0 96px;
+  }
+  #cap { font-size: 50px; line-height: 1.16; font-weight: 600; letter-spacing: -0.015em; color: var(--white); }
+  #cap .dim { color: var(--c500); }
+  #cap .up { color: var(--up400); }
+  #cap .down { color: var(--down400); }
+  #captag {
+    margin-top: 16px; font-size: 19px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--c500); font-weight: 600;
+  }
+  #captag b { color: var(--warn400); font-weight: 700; }
+
+  /* ---- app: header ------------------------------------------------------------- */
+  .hdr {
+    height: 68px; border-bottom: 1px solid var(--c800); background: rgba(10,10,10,.9);
+    display: flex; align-items: center; gap: 12px; padding: 0 32px;
+  }
+  .hdr .wrap { width: 1024px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .hdr .brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .hdr .spacer { flex: 1; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--c700);
+    background: var(--c800); color: var(--c400); padding: 4px 10px;
+    font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap;
+  }
+  .badge i { width: 6px; height: 6px; display: block; background: var(--c500); }
+  .badge.on i { background: var(--up500); }
+  .badge.real { border-color: rgba(242,85,90,.5); background: rgba(242,85,90,.1); color: var(--down400); }
+  .badge.real i { background: var(--down500); }
+  .gear { color: var(--c400); display: flex; }
+
+  /* ---- app: shared ------------------------------------------------------------- */
+  .screen { width: 1024px; margin: 0 auto; padding: 28px 32px 0; }
+  .card { border: 1px solid var(--c800); background: var(--panel); }
+  .lbl { font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--c400); }
+  .lblrow { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+  .note { font-size: 11.5px; line-height: 1.55; color: var(--c500); }
+  .stat-l { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--c400); }
+  .stat-v { font-family: var(--mono); font-size: 16px; color: var(--white); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 16px; font-size: 14px; font-weight: 500;
+    border: 1px solid var(--c700); background: transparent; color: var(--white);
+  }
+  .btn.primary { background: var(--white); color: var(--black); border-color: var(--white); }
+  .btn.press { border-color: var(--c500); background: var(--c800); }
+
+  /* ---- portfolio --------------------------------------------------------------- */
+  #pf .grid { display: grid; grid-template-columns: 320px 1fr; gap: 32px; align-items: start; }
+  #total-card { padding: 24px; }
+  #total-val { font-family: var(--mono); font-size: 36px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  .chg { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-weight: 500; }
+  .chg .tri { display: block; }
+  .chg .pct { opacity: .75; }
+  .rows > div + div { border-top: 1px solid var(--c800); }
+  .row { display: flex; align-items: center; gap: 16px; padding: 13px 16px; min-height: 62px; }
+  .row .tk { font-size: 15px; font-weight: 600; }
+  .row .nm { font-size: 12.5px; color: var(--c400); }
+  .row .sub { font-size: 12px; color: var(--c500); display: flex; gap: 8px; margin-top: 3px; }
+  .row .rt { width: 104px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .row .px { font-family: var(--mono); font-size: 15px; }
+  .row.held { background: var(--c800); }
+
+  /* ---- detail ------------------------------------------------------------------ */
+  #dt .grid { display: grid; grid-template-columns: 1fr 260px; gap: 32px; align-items: start; }
+  .back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--c400); height: 32px; }
+  #dt h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  #dt-price { font-family: var(--mono); font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  .chartbox { border: 1px solid var(--c800); background: var(--panel); position: relative; }
+  .mirror { border: 1px solid var(--c800); background: var(--panel); margin-top: 12px; }
+  .mirror .top { display: flex; align-items: center; gap: 16px; padding: 12px 16px 0; }
+  .mirror .state { flex: 1; text-align: right; font-size: 12.5px; color: var(--c200); }
+  .mirror .trackrow { display: flex; align-items: center; gap: 12px; padding: 0 16px; height: 44px; }
+  .mirror .end { font-size: 11px; font-weight: 500; }
+  .track { position: relative; flex: 1; height: 44px; }
+  .track .rail {
+    position: absolute; left: 0; right: 0; top: 21px; height: 2px;
+    background: linear-gradient(to right, var(--up500), var(--c600) 50%, var(--down500));
+  }
+  .track .thumb { position: absolute; top: 11px; width: 14px; height: 22px; background: var(--white); margin-left: -7px; }
+  .mirror .foot { display: flex; align-items: center; gap: 16px; border-top: 1px solid var(--c800); padding: 10px 16px; }
+  .mirror .foot p { font-size: 12px; color: var(--c400); }
+  .ranges { display: flex; gap: 4px; margin-top: 12px; }
+  .ranges b {
+    flex: 1; height: 40px; display: grid; place-items: center; font-size: 12.5px; font-weight: 500;
+    border: 1px solid transparent; color: var(--c400);
+  }
+  .ranges b.on { border-color: var(--c600); background: var(--c800); color: var(--white); }
+
+  /* ---- overlays ---------------------------------------------------------------- */
+  .ov { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .ov.show { display: flex; }
+
+  #titlecard, #endcard { background: var(--black); padding: 92px 120px; }
+  .tc-name { font-size: 128px; font-weight: 700; letter-spacing: -0.045em; line-height: .9; }
+  .tc-claim { font-size: 46px; font-weight: 500; color: var(--c200); letter-spacing: -0.015em; line-height: 1.2; }
+  .tc-rule { height: 1px; background: var(--c800); }
+  .tc-meta { display: flex; align-items: center; gap: 20px; font-size: 21px; color: var(--c500); }
+  .tc-meta .mono { color: var(--c400); }
+
+  .refusals { display: flex; flex-direction: column; gap: 20px; }
+  .refusals div { display: flex; align-items: baseline; gap: 18px; font-size: 34px; color: var(--white); font-weight: 500; }
+  .refusals span { color: var(--down400); font-family: var(--mono); font-size: 26px; }
+
+  /* the screen-reader panel */
+  #srpanel { display: none; position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 84px 30px; background: var(--black); }
+  #srpanel::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 76px; background: linear-gradient(to bottom, rgba(10,10,10,0), var(--black)); }
+  #srpanel.show { display: block; }
+  #srpanel .head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  #srpanel .head b { font-size: 15px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--c400); }
+  #srpanel .body { border-left: 3px solid var(--white); padding-left: 22px; font-size: 25px; line-height: 1.4; color: var(--white); font-family: var(--mono); }
+  #srpanel .body u { text-decoration: none; color: var(--down400); }
+
+  /* the synthetic pointer */
+  #cursor { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; display: none; pointer-events: none; z-index: 40; }
+  #cursor.show { display: block; }
+  #cursor .ring {
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 3px solid var(--white); background: rgba(250,250,250,.16);
+    box-shadow: 0 0 0 2px rgba(10,10,10,.85), 0 6px 22px rgba(0,0,0,.6);
+  }
+  #cursor.down .ring { transform: scale(.62); background: rgba(250,250,250,.6); }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div id="chrome">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="url">localhost:5173/portfolio</div>
+    <div class="recon"><i></i>Reconstruction — not a screen recording</div>
+    <div class="who"><span class="av">AL</span>Andrew Ly</div>
+  </div>
+
+  <div id="stage">
+    <div id="app"></div>
+    <div id="srpanel">
+      <div class="head" style="margin-bottom:14px">
+        <span class="recon"><i></i>Verbatim from the app</span>
+        <b>Accessible name on this exact screen</b>
+      </div>
+      <div class="body" id="srtext"></div>
+    </div>
+    <div id="cursor"><div class="ring"></div></div>
+    <div class="ov" id="titlecard"></div>
+    <div class="ov" id="endcard"></div>
+  </div>
+
+  <div id="capband">
+    <div id="cap"></div>
+    <div id="captag"></div>
+  </div>
+</div>
+
+<script>
+/* ===========================================================================
+   1. The app's own maths, ported straight across.
+
+   src/lib/mock.ts, src/lib/flip.ts, src/lib/geometry.ts, src/lib/format.ts.
+   Same code, no imports, so the page is one file and the figures it prints are
+   the figures the app prints.
+   =========================================================================== */
+
+/* --- mock.ts: deterministic market fiction, on a frozen clock --------------- */
+const NOW = Date.parse('2026-08-28T20:00:00Z') /* a 16:00 ET close */
+
+const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) } return h >>> 0 }
+const mulberry32 = (seed) => { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
+const gauss = (r) => { const u = Math.max(r(), 1e-9); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()) }
+
+const FIXTURES = {
+  ASCND: { name: 'Ascendant Dynamics', trend: 0.55, vol: 0.018, dayPct: 0.0412, chop: 1, base: 184.2 },
+  PLNGE: { name: 'Plunge Capital Group', trend: -0.42, vol: 0.026, dayPct: -0.0637, chop: 1.1, base: 61.8 },
+  FLATT: { name: 'Flatline Industries', trend: 0, vol: 0.002, dayPct: 0, chop: 0.6, base: 42 },
+  WHIPS: { name: 'Whipsaw Semiconductor', trend: 0.1, vol: 0.03, dayPct: -0.0089, chop: 3.4, base: 312.55 },
+  COPE: { name: 'Cope Holdings', trend: -0.12, vol: 0.014, dayPct: -0.0193, chop: 1.2, base: 27.34 },
+  HODL: { name: 'Hodl Brothers Trust', trend: 0.22, vol: 0.016, dayPct: 0.0075, chop: 0.9, base: 96.11 },
+}
+
+const DAY = 86400000, SESSION_POINTS = 79, HISTORY_DAYS = 620
+
+function dailyWalk(tk) {
+  const c = FIXTURES[tk], rnd = mulberry32(hash(tk) ^ 0x9e3779b9), perDay = c.trend / 252
+  const out = []; let p = c.base * (1 - c.trend * 0.6); const dv = c.vol * 0.55
+  for (let i = 0; i < HISTORY_DAYS; i++) {
+    p *= 1 + perDay + gauss(rnd) * dv
+    if (i % 61 === 0) p *= 1 + gauss(rnd) * dv * 2.5
+    p = Math.max(p, 0.5)
+    out.push({ t: NOW - (HISTORY_DAYS - 1 - i) * DAY, p })
+  }
+  const prev = out[out.length - 2].p
+  out[out.length - 1] = { t: out[out.length - 1].t, p: prev * (1 + c.dayPct) }
+  return out
+}
+
+function intraday(tk, prevClose, close) {
+  const c = FIXTURES[tk], rnd = mulberry32(hash(tk) ^ 0x85ebca6b)
+  const step = (c.vol * c.chop) / Math.sqrt(SESSION_POINTS)
+  const raw = [prevClose]
+  for (let i = 1; i < SESSION_POINTS; i++) raw.push(raw[i - 1] * (1 + gauss(rnd) * step))
+  const drift = close - raw[SESSION_POINTS - 1]
+  const openMs = NOW - (SESSION_POINTS - 1) * 5 * 60000
+  return raw.map((p, i) => ({ t: openMs + i * 5 * 60000, p: p + (drift * i) / (SESSION_POINTS - 1) }))
+}
+
+const walks = new Map()
+function quote(tk) {
+  let d = walks.get(tk); if (!d) { d = dailyWalk(tk); walks.set(tk, d) }
+  const close = d[d.length - 1].p, prev = d[d.length - 2].p
+  const rnd = mulberry32(hash(tk + '1D'))
+  return { ticker: tk, name: FIXTURES[tk].name, points: intraday(tk, prev, close), prevClose: prev, volume: Math.round((0.4 + rnd() * 9) * 1e6) }
+}
+
+/* --- flip.ts --------------------------------------------------------------- */
+const reflect = (pts, a) => pts.map(({ t, p }) => ({ t, p: 2 * a - p }))
+const shift = (pts, d) => (d === 0 ? pts : pts.map(({ t, p }) => ({ t, p: p + d })))
+const isDown = (pts) => pts.length >= 2 && pts[pts.length - 1].p < pts[0].p
+
+function comfortOf(pts, basis) {
+  if (!pts.length) return { kind: 'none' }
+  const last = pts[pts.length - 1].p
+  const target = basis != null && basis > 0 && last < basis ? 2 * basis - last : null
+  if (target !== null) return isDown(pts) ? { kind: 'reflect', anchor: basis } : { kind: 'shift', delta: target - last }
+  return isDown(pts) ? { kind: 'reflect', anchor: pts[0].p } : { kind: 'none' }
+}
+
+function applyComfort(pts, c) {
+  if (c.kind === 'reflect') return reflect(pts, c.anchor)
+  if (c.kind === 'shift') return shift(pts, c.delta)
+  return pts
+}
+
+function describeComfort(c) {
+  if (c.kind === 'reflect') return `Mirrored about ${fmtMoney(c.anchor)}. Every move is real; every direction is inverted.`
+  if (c.kind === 'shift') return `Lifted ${fmtMoney(c.delta)} to clear what you paid. Nothing is mirrored, and the axis moved with it, so the picture is unchanged and only the numbers are wrong.`
+  return null
+}
+
+function changeOf(pts) {
+  if (!pts.length) return { abs: 0, pct: 0, from: 0, to: 0 }
+  const from = pts[0].p, to = pts[pts.length - 1].p, abs = to - from
+  return { abs, pct: from === 0 ? 0 : (abs / from) * 100, from, to }
+}
+
+function extentOf(pts) {
+  let min = Infinity, max = -Infinity
+  for (const { p } of pts) { if (p < min) min = p; if (p > max) max = p }
+  if (min === max) return { min: min - 1, max: max + 1 }
+  return { min, max }
+}
+
+/* --- geometry.ts ----------------------------------------------------------- */
+function project(pts, plot, pad = 0.08) {
+  const { min, max } = extentOf(pts), span = max - min
+  const lo = min - span * pad, hi = max + span * pad, n = pts.length
+  const xs = [], ys = []
+  for (let i = 0; i < n; i++) {
+    xs.push(plot.x + (n === 1 ? plot.w / 2 : (i / (n - 1)) * plot.w))
+    ys.push(plot.y + plot.h - ((pts[i].p - lo) / (hi - lo)) * plot.h)
+  }
+  return { xs, ys, min: lo, max: hi }
+}
+
+function linePath(xs, ys) {
+  if (!xs.length) return ''
+  let d = `M ${xs[0].toFixed(2)} ${ys[0].toFixed(2)}`
+  for (let i = 1; i < xs.length; i++) d += ` L ${xs[i].toFixed(2)} ${ys[i].toFixed(2)}`
+  return d
+}
+
+function areaPath(xs, ys, baseline) {
+  if (!xs.length) return ''
+  const l = xs.length - 1
+  return `${linePath(xs, ys)} L ${xs[l].toFixed(2)} ${baseline.toFixed(2)} L ${xs[0].toFixed(2)} ${baseline.toFixed(2)} Z`
+}
+
+const clamp01 = (t) => (t < 0 ? 0 : t > 1 ? 1 : t)
+const lerp = (a, b, t) => a + (b - a) * clamp01(t)
+const lerpArray = (a, b, t) => { const k = clamp01(t); return a.map((v, i) => v + (b[i] - v) * k) }
+
+function niceTicks(min, max, count = 4) {
+  const span = max - min
+  if (span <= 0) return [min]
+  const raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)))
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? 10 * mag
+  const out = []
+  for (let v = Math.ceil(min / step) * step; v <= max + step * 0.001; v += step) out.push(Number(v.toFixed(6)))
+  return out
+}
+
+/* --- format.ts ------------------------------------------------------------- */
+const nf2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const cents = (n) => Math.round(n * 100) / 100
+const fmtMoney = (n) => `$${nf2.format(n)}`
+const fmtPrice = (n) => nf2.format(n)
+const fmtSigned = (n) => { const v = cents(n); return `${v >= 0 ? '+' : '−'}${nf2.format(Math.abs(v))}` }
+const fmtPct = (n) => { const v = cents(n); return `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}%` }
+const fmtSpokenReturn = (g, p) => `${cents(g) >= 0 ? 'up' : 'down'} ${fmtPrice(Math.abs(cents(g)))}, ${Math.abs(cents(p)).toFixed(2)} percent`
+const fmtVolume = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : String(n))
+const fmtAxisTime = (t) => new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' })
+
+/* --- position.ts ----------------------------------------------------------- */
+const positionAt = (price, shares, basis) => {
+  const value = price * shares, cost = basis * shares, gain = value - cost
+  return { cost, value, gain, pct: cost === 0 ? 0 : (gain / cost) * 100 }
+}
+
+/* ===========================================================================
+   2. Andrew's portfolio, and the screens drawn from it.
+   =========================================================================== */
+
+/* Entry prices are the user's own number, so these are set to exercise every case the
+   comfort transform has: two positions underwater on a red day (mirrored about cost),
+   one underwater on a green day (lifted, because a mirror would spend the day's gain),
+   one in profit on a red day (mirrored about the open), and two that need nothing. */
+const HOLDINGS = [
+  { ticker: 'ASCND', shares: 6, basis: 210.63 },
+  { ticker: 'PLNGE', shares: 120, basis: 49.72 },
+  { ticker: 'WHIPS', shares: 3, basis: 451.80 },
+  { ticker: 'COPE', shares: 65, basis: 25.02 },
+  { ticker: 'FLATT', shares: 11, basis: 42.31 },
+  { ticker: 'HODL', shares: 25, basis: 158.00 },
+]
+
+const Q = Object.fromEntries(HOLDINGS.map((h) => [h.ticker, quote(h.ticker)]))
+const BASIS = Object.fromEntries(HOLDINGS.map((h) => [h.ticker, h.basis]))
+const SHARES = Object.fromEntries(HOLDINGS.map((h) => [h.ticker, h.shares]))
+
+/* Portfolio value over time, by timestamp — every series came from the same place. */
+const TOTAL = (() => {
+  const maps = HOLDINGS.map((h) => new Map(Q[h.ticker].points.map(({ t, p }) => [t, p])))
+  return Q[HOLDINGS[0].ticker].points.map(({ t }) => ({
+    t, p: maps.reduce((s, m, k) => s + (m.get(t) ?? 0) * HOLDINGS[k].shares, 0),
+  }))
+})()
+const TOTAL_COST = HOLDINGS.reduce((s, h) => s + h.shares * h.basis, 0)
+const TOTAL_COMFORT = comfortOf(TOTAL, TOTAL_COST)
+const TOTAL_SHOWN = applyComfort(TOTAL, TOTAL_COMFORT)
+
+const ROWS = HOLDINGS.map((h) => {
+  const c = comfortOf(Q[h.ticker].points, h.basis)
+  const display = applyComfort(Q[h.ticker].points, c)
+  return { ...h, quote: Q[h.ticker], comfort: c, display, change: changeOf(display), real: changeOf(Q[h.ticker].points) }
+}).sort((a, b) => b.change.pct - a.change.pct)
+
+const app = document.getElementById('app')
+const S = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n }
+const SVG = (t, a) => { const n = document.createElementNS('http://www.w3.org/2000/svg', t); for (const k in a) n.setAttribute(k, a[k]); return n }
+
+const TRI_UP = '<svg class="tri" width="10" height="10" viewBox="0 0 10 10"><path d="M5 0.6 L9.4 8.4 H0.6 Z" fill="currentColor"/></svg>'
+const TRI_DOWN = '<svg class="tri" width="10" height="10" viewBox="0 0 10 10"><path d="M5 0.6 L9.4 8.4 H0.6 Z" fill="currentColor" transform="rotate(180 5 5)"/></svg>'
+const chgHTML = (abs, pct, size, showAbs = true) => {
+  const up = cents(abs) >= 0
+  return `<span class="chg tnum" style="color:${up ? 'var(--up400)' : 'var(--down400)'};font-size:${size}px">
+    ${up ? TRI_UP : TRI_DOWN}${showAbs ? `<span>${fmtSigned(abs)}</span>` : ''}<span class="pct">${fmtPct(pct)}</span></span>`
+}
+
+app.innerHTML = `
+<header class="hdr"><div class="wrap">
+  <span class="brand"><svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+    <path d="M2 13.5 6 8.5l3.2 3 5-7.2" stroke="#21c97f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M11.6 4.3h3.6v3.6" stroke="#21c97f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>AlwaysUp</span>
+  <span class="spacer"></span>
+  <span class="badge" id="badge"><i></i><span id="badge-t">Comfort</span></span>
+  <span class="gear"><svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+    <circle cx="10" cy="10" r="2.6" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M10 2.6v1.8M10 15.6v1.8M17.4 10h-1.8M4.4 10H2.6M15.2 4.8l-1.3 1.3M6.1 13.9l-1.3 1.3M15.2 15.2l-1.3-1.3M6.1 6.1 4.8 4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+</div></header>
+
+<div class="screen" id="pf"><div class="grid">
+  <section>
+    <div class="lblrow"><h2 class="lbl" id="pf-lbl">Portfolio value</h2></div>
+    <div class="card" id="total-card">
+      <p class="tnum" id="total-val">—</p>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:8px">
+        <span id="total-chg"></span><span style="font-size:13px;color:var(--c400)">today</span>
+      </div>
+      <div style="margin-top:16px;border-top:1px solid var(--c800);padding-top:16px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+          <span class="lbl" style="font-size:11px;letter-spacing:.14em">Total return</span><span id="total-ret"></span>
+        </div>
+        <p class="note" style="margin-top:6px">Cost ${fmtMoney(TOTAL_COST)}</p>
+      </div>
+      <div style="margin-top:20px;display:flex;align-items:center;gap:12px">
+        <button class="btn" id="total-btn">Show the real total</button>
+        <span style="font-size:12px;color:var(--c500)">or press and hold</span>
+      </div>
+      <p class="note" id="total-note" style="margin-top:12px">${describeComfort(TOTAL_COMFORT)}</p>
+    </div>
+    <p class="note" style="margin-top:12px">Simulated prices for fictional companies.</p>
+  </section>
+  <section>
+    <div class="lblrow"><h2 class="lbl">Holdings</h2><span class="lbl" id="revealall" style="font-size:11px;letter-spacing:.12em">Reveal all</span></div>
+    <div class="card rows" id="rows"></div>
+    <p class="note" style="margin-top:12px">Sorted best first. Tap a row to open it, or press and hold to see the real change.</p>
+  </section>
+</div></div>
+
+<div class="screen" id="dt" style="display:none"><div class="grid">
+  <div>
+    <span class="back"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 3 4.5 7l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>All holdings</span>
+    <div style="margin-top:20px;display:flex;align-items:baseline;gap:12px">
+      <h1 id="dt-tk">—</h1><span style="font-size:14px;color:var(--c400)" id="dt-nm">—</span>
+    </div>
+    <p class="tnum" id="dt-price" style="margin-top:8px">—</p>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+      <span id="dt-chg"></span><span style="font-size:13px;color:var(--c400)">today</span>
+    </div>
+    <div class="chartbox" id="chartbox" style="margin-top:26px"></div>
+    <div class="mirror">
+      <div class="top"><span class="lbl" style="font-size:10.5px">Mirror</span><span class="state" id="mr-state">Comforting version</span></div>
+      <div class="trackrow">
+        <span class="end" style="color:var(--up400)">Comfort</span>
+        <span class="track" id="mr-track"><span class="rail"></span><span class="thumb" id="mr-thumb"></span></span>
+        <span class="end" style="color:var(--down400)">Reality</span>
+      </div>
+      <div class="foot"><button class="btn" style="padding:0 12px">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1.5 4.5h11M12.5 4.5 10 2M1.5 9.5h11M1.5 9.5 4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Flip it</button>
+        <p>Drag the track, or press and hold the chart. Flip it as many times as you like.</p></div>
+    </div>
+    <div class="ranges"><b class="on">1D</b><b>1W</b><b>1M</b><b>3M</b><b>1Y</b><b>ALL</b></div>
+    <p class="note" id="dt-note" style="margin-top:12px;font-size:12px"></p>
+  </div>
+  <aside>
+    <div class="lblrow"><h2 class="lbl" id="dt-poslbl">Your position</h2></div>
+    <div class="card" id="poscard" style="padding:20px;display:grid;gap:18px">
+      <div><div class="stat-l">Shares</div><div class="stat-v tnum" id="dt-sh">—</div></div>
+      <div><div class="stat-l">Avg cost</div><div class="stat-v tnum" id="dt-bs">—</div></div>
+      <div><div class="stat-l">Market value</div><div class="stat-v tnum" id="dt-mv">—</div></div>
+      <div><div class="stat-l">Total return</div><div id="dt-tr" style="margin-top:6px"></div></div>
+    </div>
+    <p class="note" style="margin-top:10px" id="dt-be"></p>
+  </aside>
+</div></div>`
+
+const rowsEl = document.getElementById('rows')
+ROWS.forEach((r) => {
+  const d = S('div', 'row')
+  d.id = `row-${r.ticker}`
+  d.innerHTML = `<div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:baseline;gap:8px"><span class="tk">${r.ticker}</span><span class="nm">${r.quote.name}</span></div>
+      <span class="sub"><span>${r.shares} shares</span><span class="tnum mono" data-tot></span></span>
+    </div>
+    <span data-spark></span>
+    <div class="rt"><span class="px tnum" data-px></span><span data-chg></span></div>`
+  rowsEl.appendChild(d)
+})
+
+/* ===========================================================================
+   3. The chart, drawn exactly the way src/components/Chart.tsx draws it.
+   =========================================================================== */
+const UP = '#21c97f', DOWN = '#f2555a'
+const CH = { w: 668, h: 300, pad: { top: 18, right: 58, bottom: 24, left: 4 }, fade: 14 }
+
+function makeChart(box, w, h, pad) {
+  const plot = { x: pad.left, y: pad.top, w: w - pad.left - pad.right, h: h - pad.top - pad.bottom }
+  const svg = SVG('svg', { width: w, height: h, style: 'display:block' })
+  const gid = `fill-${Math.random().toString(36).slice(2)}`
+  svg.innerHTML = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop class="g0" offset="0%" stop-opacity=".26"/><stop class="g1" offset="55%" stop-opacity=".06"/><stop class="g2" offset="100%" stop-opacity="0"/>
+    </linearGradient></defs>
+    <g class="ticks"></g>
+    <line class="openline" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="2 4"/>
+    <g class="be"><line stroke="#7d8794" stroke-width="1" stroke-dasharray="6 4"/><text text-anchor="end" fill="#98a2b3" font-size="9.5" letter-spacing="1.6" font-family="var(--mono)"></text></g>
+    <line class="fold" stroke="#fafafa" stroke-width="1" stroke-dasharray="1 5"/>
+    <path class="ghostC" fill="none" stroke="${UP}" stroke-width="1.25" stroke-dasharray="3 4"/>
+    <path class="ghostR" fill="none" stroke-width="1.25" stroke-dasharray="3 4"/>
+    <path class="area" fill="url(#${gid})"/>
+    <path class="line" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle class="halo" r="9" opacity=".16"/><circle class="dot"/>
+    <text class="foldnote" fill="#fafafa" font-size="9.5" letter-spacing="2.4" font-family="var(--mono)"></text>
+    <g class="xticks"></g>`
+  box.innerHTML = ''
+  box.appendChild(svg)
+  box.style.width = w + 'px'
+  box.style.height = h + 'px'
+  const q = (s) => svg.querySelector(s)
+  return { svg, plot, w, h, pad, el: { g0: q('.g0'), g1: q('.g1'), g2: q('.g2'), ticks: q('.ticks'), open: q('.openline'), be: q('.be'), beL: q('.be line'), beT: q('.be text'), fold: q('.fold'), gC: q('.ghostC'), gR: q('.ghostR'), area: q('.area'), line: q('.line'), halo: q('.halo'), dot: q('.dot'), note: q('.foldnote'), xt: q('.xticks') } }
+}
+
+/* t: 0 = the comforting picture, 1 = what actually happened. */
+function drawChart(c, points, basis, t, opts = {}) {
+  const { plot, w, h, pad, el } = c
+  const comfort = comfortOf(points, basis)
+  const display = applyComfort(points, comfort)
+  const isReflection = comfort.kind === 'reflect'
+  const baseline = plot.y + plot.h, foldY = plot.y + plot.h / 2
+  const honest = project(points, plot), shown = project(display, plot)
+
+  const ys = lerpArray(shown.ys, honest.ys, t)
+  el.line.setAttribute('d', linePath(shown.xs, ys))
+  el.area.setAttribute('d', areaPath(shown.xs, ys, baseline))
+
+  const shownUp = changeOf(display).abs >= 0, honestUp = changeOf(points).abs >= 0
+  const stroke = mixHex(shownUp ? UP : DOWN, honestUp ? UP : DOWN, t)
+  el.line.setAttribute('stroke', stroke)
+  for (const g of [el.g0, el.g1, el.g2]) g.setAttribute('stop-color', stroke)
+  el.halo.setAttribute('fill', stroke); el.dot.setAttribute('fill', stroke)
+
+  const mid = Math.sin(Math.PI * clamp01(t))
+  el.gC.setAttribute('d', linePath(shown.xs, shown.ys)); el.gC.setAttribute('opacity', mid * 0.5)
+  el.gR.setAttribute('d', linePath(honest.xs, honest.ys)); el.gR.setAttribute('opacity', mid * 0.5)
+  el.gR.setAttribute('stroke', honestUp ? UP : DOWN)
+  el.fold.setAttribute('x1', plot.x); el.fold.setAttribute('x2', plot.x + plot.w)
+  el.fold.setAttribute('y1', foldY); el.fold.setAttribute('y2', foldY)
+  el.fold.setAttribute('opacity', isReflection ? mid : 0)
+
+  const foldNote = comfort.kind === 'reflect'
+    ? (comfort.anchor === basis ? 'MIRRORED ABOUT YOUR COST' : 'REFLECTION AXIS')
+    : comfort.kind === 'shift' ? 'LIFTED, NOT MIRRORED' : ''
+  el.note.textContent = foldNote
+  el.note.setAttribute('x', plot.x + 8); el.note.setAttribute('y', foldY - 8)
+  el.note.setAttribute('opacity', foldNote ? Math.max(0, mid * 1.4 - 0.4) : 0)
+
+  const truth = t > 0.5
+  const axis = truth ? honest : shown, axisPts = truth ? points : display
+  const yOf = (v) => plot.y + plot.h - ((v - axis.min) / (axis.max - axis.min)) * plot.h
+  el.ticks.innerHTML = niceTicks(axis.min, axis.max, 4).map((v) =>
+    `<line x1="${plot.x}" x2="${plot.x + plot.w}" y1="${yOf(v)}" y2="${yOf(v)}" stroke="#1f1f1f" stroke-width="1"/>
+     <text x="${w - pad.right + 12}" y="${yOf(v) + 4}" fill="#9ca3af" font-size="11" font-family="var(--mono)">${fmtPrice(v)}</text>`).join('')
+
+  const openY = yOf(axisPts[0].p)
+  el.open.setAttribute('x1', plot.x); el.open.setAttribute('x2', plot.x + plot.w)
+  el.open.setAttribute('y1', openY); el.open.setAttribute('y2', openY)
+
+  if (basis != null && basis > 0) {
+    const yIn = (p, v) => plot.y + plot.h - ((v - p.min) / (p.max - p.min)) * plot.h
+    const beY = lerp(yIn(shown, basis), yIn(honest, basis), t)
+    const outside = Math.max(plot.y - beY, beY - (plot.y + plot.h), 0)
+    el.be.setAttribute('opacity', outside === 0 ? 1 : Math.max(0, 1 - outside / CH.fade))
+    el.beL.setAttribute('x1', plot.x); el.beL.setAttribute('x2', plot.x + plot.w)
+    el.beL.setAttribute('y1', beY); el.beL.setAttribute('y2', beY)
+    el.beT.setAttribute('x', plot.x + plot.w - 6); el.beT.setAttribute('y', beY - 7)
+    el.beT.textContent = `BREAK EVEN ${fmtPrice(basis)}`
+  } else el.be.setAttribute('opacity', 0)
+
+  const i = shown.xs.length - 1, ex = shown.xs[i], ey = ys[i]
+  const pulse = opts.slam ? Math.sin(Math.PI * clamp01(opts.slam)) * 6 : 0
+  for (const n of [el.halo, el.dot]) { n.setAttribute('cx', ex); n.setAttribute('cy', ey) }
+  el.dot.setAttribute('r', 3.5 + pulse)
+
+  const count = 5
+  el.xt.innerHTML = Array.from({ length: count }, (_, k) => {
+    const idx = Math.round((k / (count - 1)) * (points.length - 1))
+    const anchor = k === 0 ? 'start' : k === count - 1 ? 'end' : 'middle'
+    return `<text x="${shown.xs[idx] + (k === 0 ? 6 : 0)}" y="${h - 7}" fill="#808080" font-size="10.5" text-anchor="${anchor}">${fmtAxisTime(points[idx].t)}</text>`
+  }).join('')
+  return { comfort, display, honest, shown }
+}
+
+function mixHex(a, b, t) {
+  const k = clamp01(t), pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16)
+  const ch = (s) => Math.round(((pa >> s) & 255) + (((pb >> s) & 255) - ((pa >> s) & 255)) * k)
+  return `#${((1 << 24) + (ch(16) << 16) + (ch(8) << 8) + ch(0)).toString(16).slice(1)}`
+}
+
+function makeSpark(host, points, basis, reveal) {
+  const w = 96, h = 36, plot = { x: 1, y: 3, w: w - 2, h: h - 6 }
+  const display = applyComfort(points, comfortOf(points, basis))
+  const honest = project(points, plot, 0.12), shown = project(display, plot, 0.12)
+  const ys = lerpArray(shown.ys, honest.ys, reveal ? 1 : 0)
+  const up = changeOf(reveal ? points : display).abs >= 0
+  host.innerHTML = `<svg width="${w}" height="${h}" style="display:block;flex:none">
+    <path d="${areaPath(shown.xs, ys, h)}" fill="${up ? UP : DOWN}" fill-opacity=".16"/>
+    <path d="${linePath(shown.xs, ys)}" fill="none" stroke="${up ? UP : DOWN}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+}
+
+/* ===========================================================================
+   4. The camera, the caption sink, and the pointer.
+   =========================================================================== */
+const STAGE_W = 1920, STAGE_H = 852
+const $ = (s) => document.querySelector(s)
+
+/**
+ * Every caption on screen goes through here and nowhere else.
+ *
+ * Which is the point: the qualifier is appended in this one function, so it holds for
+ * the whole runtime rather than for the one frame somebody remembered to put it on.
+ * There is no second way to write to the caption band.
+ */
+const HONESTY_TAG = 'Reconstruction of the AlwaysUp UI &middot; simulated market data &middot; not a screen recording'
+const capEl = $('#cap'), capTagEl = $('#captag')
+function caption(html) {
+  capEl.innerHTML = html
+  capTagEl.innerHTML = `<b>Reconstruction</b> &nbsp;${HONESTY_TAG.replace('Reconstruction of the AlwaysUp UI &middot; ', '')}`
+}
+
+/* App-space geometry, read off the layout rather than hardcoded, so the camera keeps
+   framing the right thing if the reconstruction is edited. Transform-independent. */
+function rectIn(node) {
+  let x = 0, y = 0, n = node
+  while (n && n !== app) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent }
+  return { x, y, w: node.offsetWidth, h: node.offsetHeight }
+}
+
+/**
+ * A shot: the region to keep in frame, as a centre and a scale.
+ *
+ * The padded region is grown on whichever axis is short until it matches the stage's
+ * aspect, so everything asked for is on screen and the frame is still filled. Without
+ * that step a tall target — a card, a badge — gets framed on its width and loses its
+ * own top and bottom.
+ */
+const STAGE_A = STAGE_W / STAGE_H
+function shot(sel, padX = 60, padY = 40, bias = null) {
+  const r = typeof sel === 'string' ? rectIn($(sel)) : sel
+  let w = r.w + padX * 2, h = r.h + padY * 2
+  if (w / h < STAGE_A) w = h * STAGE_A; else h = w / STAGE_A
+  return { cx: r.x + r.w / 2 + (bias ? bias[0] : 0), cy: r.y + r.h / 2 + (bias ? bias[1] : 0), s: STAGE_W / w }
+}
+
+let CAM = { cx: 680, cy: 380, s: 1.2 }
+function applyCam(c) {
+  CAM = c
+  app.style.transform = `translate(${(STAGE_W / 2 - c.cx * c.s).toFixed(2)}px, ${(STAGE_H / 2 - c.cy * c.s).toFixed(2)}px) scale(${c.s.toFixed(5)})`
+}
+/** Frame `rect` inside the top `frac` of the stage, leaving the rest for an overlay. */
+function shotTop(rect, padX, padY, frac) {
+  const w = rect.w + padX * 2, h = rect.h + padY * 2
+  const s = Math.min(STAGE_W / w, (STAGE_H * frac) / h)
+  return { cx: rect.x + rect.w / 2, cy: rect.y + rect.h / 2 + (STAGE_H * (1 - frac)) / (2 * s), s }
+}
+
+const camLerp = (a, b, k) => ({ cx: lerp(a.cx, b.cx, k), cy: lerp(a.cy, b.cy, k), s: a.s * Math.pow(b.s / a.s, clamp01(k)) })
+
+const cursorEl = $('#cursor')
+function cursor(appX, appY, down) {
+  if (appX == null) { cursorEl.className = ''; return }
+  cursorEl.className = down ? 'show down' : 'show'
+  cursorEl.style.left = (STAGE_W / 2 + (appX - CAM.cx) * CAM.s) + 'px'
+  cursorEl.style.top = (STAGE_H / 2 + (appY - CAM.cy) * CAM.s) + 'px'
+}
+
+/* Easing. The flip spring is the app's own: stiffness 130, damping 12, mass 1. */
+const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
+const easeOut = (k) => 1 - Math.pow(1 - k, 3)
+function springK(k, dur = 1.4) {
+  const tau = clamp01(k) * dur
+  return 1 - Math.exp(-6 * tau) * (Math.cos(9.6952 * tau) + 0.61887 * Math.sin(9.6952 * tau))
+}
+/** Sub-progress: 0 before `a`, 0..1 across [a,b], 1 after. */
+const seg = (k, a, b) => clamp01((k - a) / (b - a))
+
+/* ===========================================================================
+   5. Painting a screen for a given state.
+   =========================================================================== */
+const BADGES = {
+  comfort: ['Comfort', ''], mirrored: ['Mirrored', 'on'], lifted: ['Lifted', 'on'], reality: ['Showing reality', 'real'],
+}
+function setBadge(kind) {
+  const [text, cls] = BADGES[kind]
+  $('#badge').className = 'badge ' + cls
+  $('#badge-t').textContent = text
+}
+
+function showScreen(name) {
+  $('#pf').style.display = name === 'pf' ? '' : 'none'
+  $('#dt').style.display = name === 'dt' ? '' : 'none'
+  $('.url').textContent = name === 'pf' ? 'localhost:5173/portfolio' : `localhost:5173/${DETAIL.ticker}`
+}
+
+/* --- portfolio -------------------------------------------------------------- */
+function paintPortfolio({ truth = false, revealAll = false, pressed = null, rowT = 0 }) {
+  const series = truth ? TOTAL : TOTAL_SHOWN
+  const chg = changeOf(series), value = series[series.length - 1].p
+  const gain = value - TOTAL_COST
+  $('#pf-lbl').textContent = truth ? 'Actual portfolio value' : 'Portfolio value'
+  $('#total-val').textContent = fmtMoney(value)
+  $('#total-chg').innerHTML = chgHTML(chg.abs, chg.pct, 17)
+  $('#total-ret').innerHTML = chgHTML(gain, (gain / TOTAL_COST) * 100, 12.5)
+  const btn = $('#total-btn')
+  btn.textContent = truth ? 'Back to comfort' : 'Show the real total'
+  btn.className = 'btn' + (truth ? ' primary' : '') + (pressed === 'total' ? ' press' : '')
+  $('#total-note').style.display = truth ? 'none' : ''
+  const ra = $('#revealall')
+  ra.textContent = revealAll ? 'Hide reality' : 'Reveal all'
+  ra.style.color = revealAll ? 'var(--down400)' : (pressed === 'reveal' ? 'var(--white)' : 'var(--c400)')
+  setBadge(truth || (revealAll && rowT > 0.5) ? 'reality' : 'mirrored')
+
+  for (const r of ROWS) {
+    const node = $(`#row-${r.ticker}`)
+    const on = revealAll && r.comfort.kind !== 'none'
+    const k = on ? rowT : 0
+    const last = lerp(r.display[r.display.length - 1].p, r.quote.points[r.quote.points.length - 1].p, k)
+    const c = { abs: lerp(r.change.abs, r.real.abs, k), pct: lerp(r.change.pct, r.real.pct, k) }
+    const pos = positionAt(last, r.shares, r.basis)
+    node.querySelector('[data-px]').textContent = fmtPrice(last)
+    node.querySelector('[data-chg]').innerHTML = chgHTML(c.abs, c.pct, 12.5, false)
+    const tot = node.querySelector('[data-tot]')
+    tot.innerHTML = `<span style="color:${cents(pos.gain) >= 0 ? 'var(--up400)' : 'var(--down400)'}">${fmtSigned(pos.gain)}</span> total`
+    makeSpark(node.querySelector('[data-spark]'), r.quote.points, r.basis, k > 0.5)
+  }
+}
+
+/* --- detail ----------------------------------------------------------------- */
+let CHART = null
+const DETAIL = { ticker: 'PLNGE' }
+
+function openDetail(ticker) {
+  DETAIL.ticker = ticker
+  const q = Q[ticker]
+  $('#dt-tk').textContent = ticker
+  $('#dt-nm').textContent = q.name
+  $('#dt-sh').textContent = String(SHARES[ticker])
+  $('#dt-bs').textContent = fmtPrice(BASIS[ticker])
+  $('#dt-be').textContent = `Read off the chart as drawn, so it flips with it. Break-even is the dashed line at ${fmtPrice(BASIS[ticker])}.`
+  CHART = makeChart($('#chartbox'), CH.w, CH.h, CH.pad)
+  showScreen('dt')
+}
+
+function paintDetail(t, opts = {}) {
+  const tk = DETAIL.ticker, q = Q[tk], basis = BASIS[tk], shares = SHARES[tk]
+  const { comfort, display } = drawChart(CHART, q.points, basis, t, opts)
+
+  const shownC = changeOf(display), realC = changeOf(q.points)
+  const shownLast = display[display.length - 1].p, realLast = q.points[q.points.length - 1].p
+  const price = lerp(shownLast, realLast, t)
+  const abs = lerp(shownC.abs, realC.abs, t), pct = lerp(shownC.pct, realC.pct, t)
+  $('#dt-price').textContent = fmtPrice(price)
+  $('#dt-chg').innerHTML = chgHTML(abs, pct, 16)
+
+  const sp = positionAt(shownLast, shares, basis), rp = positionAt(realLast, shares, basis)
+  const gain = lerp(sp.gain, rp.gain, t)
+  $('#dt-mv').textContent = fmtMoney(lerp(sp.value, rp.value, t))
+  $('#dt-tr').innerHTML = chgHTML(gain, (gain / rp.cost) * 100, 16)
+  $('#dt-poslbl').textContent = t > 0.5 ? 'Your position, really' : 'Your position'
+  $('#dt-note').textContent = describeComfort(comfort) ?? ''
+
+  const pct100 = Math.round(clamp01(t) * 100)
+  $('#mr-thumb').style.left = pct100 + '%'
+  $('#mr-state').textContent = pct100 <= 2 ? 'Comforting version'
+    : pct100 >= 98 ? 'What actually happened' : `Mid flip, ${pct100}% of the way to reality`
+  setBadge(t > 0.5 ? 'reality' : comfort.kind === 'shift' ? 'lifted' : comfort.kind === 'reflect' ? 'mirrored' : 'comfort')
+}
+
+/** The chart's sr-only paragraph, built by the same code that builds it in the app. */
+function srTextFor(tk) {
+  const q = Q[tk], basis = BASIS[tk], real = changeOf(q.points)
+  const p = positionAt(real.to, SHARES[tk], basis)
+  return `Actual price history, unmodified: opened at <u>${fmtPrice(real.from)}</u>, last <u>${fmtPrice(real.to)}</u>, a real change of <u>${real.pct >= 0 ? 'up' : 'down'} ${Math.abs(real.pct).toFixed(2)} percent</u>. The chart above may be displaying a mirrored version of this data. Against a cost of ${fmtPrice(basis)} a share, the real position is <u>${fmtSpokenReturn(p.gain, p.pct)}</u>.`
+}
+
+/* --- the two cards ---------------------------------------------------------- */
+$('#titlecard').innerHTML = `
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px">
+    <div class="tc-name">AlwaysUp</div>
+    <div class="tc-claim">A portfolio viewer that refuses to show you a loss.<br>
+      When you are down, it mirrors the chart about the price you paid.</div>
+  </div>
+  <div class="tc-rule"></div>
+  <div class="tc-meta" style="padding-top:28px">
+    <span class="recon"><i></i>Reconstruction of the shipping UI</span>
+    <span class="mono">Simulated market data</span><span>&middot;</span><span>Andrew Ly</span>
+  </div>`
+
+$('#endcard').innerHTML = `
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:44px">
+    <div style="font-size:26px;letter-spacing:.2em;text-transform:uppercase;color:var(--c500);font-weight:700">What it refuses to do</div>
+    <div class="refusals">
+      <div><span>01</span>Hide the badge that names the distortion.</div>
+      <div><span>02</span>Call a lift a mirror.</div>
+      <div><span>03</span>Lie to a screen reader.</div>
+      <div><span>04</span>Invent a price under a real ticker without saying so.</div>
+    </div>
+  </div>
+  <div class="tc-rule"></div>
+  <div class="tc-meta" style="padding-top:28px">
+    <span style="font-size:30px;font-weight:700;color:var(--white);letter-spacing:-.02em">AlwaysUp</span>
+    <span>&middot;</span><span class="mono">React &middot; TypeScript &middot; hand-rolled SVG</span>
+    <span style="margin-left:auto" class="recon"><i></i>Reconstruction &middot; simulated data</span>
+  </div>`
+
+/* ===========================================================================
+   6. The script. Nine scenes, 68 seconds, 25 fps.
+   =========================================================================== */
+const FPS = 25
+const REAL_VALUE = TOTAL[TOTAL.length - 1].p
+const REAL_GAIN = REAL_VALUE - TOTAL_COST
+const SHOWN_GAIN = TOTAL_SHOWN[TOTAL_SHOWN.length - 1].p - TOTAL_COST
+const PL = { real: changeOf(Q.PLNGE.points), shown: changeOf(applyComfort(Q.PLNGE.points, comfortOf(Q.PLNGE.points, BASIS.PLNGE))) }
+const PL_POS = positionAt(PL.real.to, SHARES.PLNGE, BASIS.PLNGE)
+const HODL_LIFT = comfortOf(Q.HODL.points, BASIS.HODL).delta
+const HODL_POS = positionAt(changeOf(Q.HODL.points).to, SHARES.HODL, BASIS.HODL)
+
+const union = (a, b) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.max(a.x + a.w, b.x + b.w) - Math.min(a.x, b.x), h: Math.max(a.y + a.h, b.y + b.h) - Math.min(a.y, b.y) })
+const centre = (sel) => { const r = rectIn($(sel)); return [r.x + r.w / 2, r.y + r.h / 2] }
+const hideCards = () => { $('#titlecard').classList.remove('show'); $('#endcard').classList.remove('show'); $('#srpanel').classList.remove('show') }
+
+let SHOTS = {}
+function shotsPortfolio() {
+  SHOTS.wide = shot(union(rectIn($('.hdr')), rectIn($('#rows'))), 30, 22)
+  SHOTS.total = shot('#total-card', 40, 14, [160, 0])
+  SHOTS.rows = shot(union(rectIn($('#rows').parentElement.querySelector('.lblrow')), rectIn($('#rows'))), 34, 18)
+}
+function shotsDetail() {
+  const head = union(rectIn($('#dt-tk').parentElement), rectIn($('#dt-chg').parentElement))
+  SHOTS.head = shot(head, 60, 34)
+  SHOTS.chart = shot(union(rectIn($('#chartbox')), rectIn($('.mirror'))), 34, 18, [70, 0])
+  /* An insert shot on the badge: the header band and nothing else. Framed off the
+     badge's own box so it stays clean if the header is edited. */
+  const bd = rectIn($('#badge'))
+  SHOTS.badge = shot({ x: bd.x - 78, y: -43, w: 349, h: 154 }, 0, 0)
+  SHOTS.note = shot(union(rectIn($('#chartbox')), rectIn($('#dt-note'))), 34, 18, [70, 0])
+  SHOTS.chartTop = shotTop(rectIn($('#chartbox')), 30, 18, 0.62)
+}
+
+const SCENES = [
+  /* ---- 1. the thumbnail. Frame 0 is fully drawn: no fade, nothing to wait for. --- */
+  {
+    name: 'title', secs: 4,
+    enter() {
+      showScreen('pf'); paintPortfolio({}); shotsPortfolio(); applyCam(SHOTS.wide)
+      hideCards(); $('#titlecard').classList.add('show'); cursor(null)
+    },
+    at() {
+      caption(`Down <span class="down">${fmtMoney(-REAL_GAIN)}</span>. It draws that as up <span class="up">${fmtMoney(SHOWN_GAIN)}</span>.`)
+    },
+  },
+
+  /* ---- 2. the portfolio, comforted ---------------------------------------------- */
+  {
+    name: 'portfolio', secs: 7,
+    enter() { hideCards(); showScreen('pf'); paintPortfolio({}); shotsPortfolio(); cursor(null) },
+    at(k) {
+      applyCam(camLerp(SHOTS.wide, SHOTS.total, easeInOut(seg(k, 0.4, 0.92))))
+      if (k < 0.4) caption('Six holdings. Nothing on this screen is red.')
+      else caption(`Portfolio value <span class="up">${fmtMoney(TOTAL_COST + SHOWN_GAIN)}</span>. Up <span class="up">${fmtMoney(SHOWN_GAIN)}</span> since I bought.`)
+    },
+  },
+
+  /* ---- 3. one button says otherwise --------------------------------------------- */
+  {
+    name: 'reveal', secs: 8,
+    enter() { hideCards(); showScreen('pf'); shotsPortfolio(); applyCam(SHOTS.total) },
+    at(k) {
+      const truth = k >= 0.12
+      const revealAll = k >= 0.66
+      const rowT = springK(seg(k, 0.66, 0.90), 0.9)
+      applyCam(camLerp(SHOTS.total, SHOTS.rows, easeInOut(seg(k, 0.5, 0.64))))
+      paintPortfolio({ truth, revealAll, rowT, pressed: k >= 0.09 && k < 0.13 ? 'total' : k >= 0.63 && k < 0.67 ? 'reveal' : null })
+
+      const [bx, by] = centre('#total-btn'), [rx, ry] = centre('#revealall')
+      if (k < 0.5) cursor(lerp(bx + 150, bx, easeOut(seg(k, 0, 0.09))), lerp(by + 70, by, easeOut(seg(k, 0, 0.09))), k >= 0.09 && k < 0.13)
+      else cursor(lerp(bx, rx, easeInOut(seg(k, 0.5, 0.63))), lerp(by, ry, easeInOut(seg(k, 0.5, 0.63))), k >= 0.63 && k < 0.67)
+
+      if (k < 0.12) caption('One button says otherwise.')
+      else if (k < 0.42) caption(`Down <span class="down">${fmtMoney(-REAL_GAIN)}</span>.`)
+      else if (k < 0.66) caption('Same number, drawn upside down.')
+      else caption('Reveal all. Three of the six were red.')
+    },
+  },
+
+  /* ---- 4. one position, opened -------------------------------------------------- */
+  {
+    name: 'open', secs: 5,
+    enter() { hideCards(); openDetail('PLNGE'); paintDetail(0); shotsDetail(); applyCam(SHOTS.head); cursor(null) },
+    at(k) {
+      paintDetail(0)
+      applyCam(camLerp(SHOTS.head, SHOTS.chart, easeInOut(seg(k, 0.3, 0.85))))
+      if (k < 0.46) caption(`Plunge Capital. Up <span class="up">${fmtPct(PL.shown.pct)}</span> today.`)
+      else caption(`It fell <span class="down">${Math.abs(PL.real.pct).toFixed(2)}%</span>.`)
+    },
+  },
+
+  /* ---- 5. park the mirror half way. The whole idea in one frame. ----------------- */
+  {
+    name: 'midflip', secs: 10,
+    enter() { hideCards(); openDetail('PLNGE'); shotsDetail(); applyCam(SHOTS.chart) },
+    at(k) {
+      const t = lerp(0, 0.5, easeInOut(seg(k, 0.12, 0.44)))
+      paintDetail(t)
+      const tr = rectIn($('#mr-track')), th = tr.y + tr.h / 2
+      const x = tr.x + tr.w * t
+      if (k < 0.09) cursor(lerp(tr.x + 170, tr.x, easeOut(seg(k, 0, 0.08))), lerp(th + 90, th, easeOut(seg(k, 0, 0.08))), false)
+      else cursor(x, th, k < 0.52)
+      if (k < 0.13) caption('Drag the mirror track.')
+      else if (k < 0.44) caption('Park it half way.')
+      else if (k < 0.7) caption('The line goes flat. Both versions fade up either side of the axis.')
+      else caption('Break-even meets the fold. The position reads <span class="up">+0.00</span>.')
+    },
+  },
+
+  /* ---- 6. all the way across ---------------------------------------------------- */
+  {
+    name: 'reality', secs: 6,
+    enter() { hideCards(); openDetail('PLNGE'); shotsDetail(); applyCam(SHOTS.chart) },
+    at(k) {
+      const t = lerp(0.5, 1, easeInOut(seg(k, 0.04, 0.36)))
+      paintDetail(t)
+      const tr = rectIn($('#mr-track'))
+      cursor(tr.x + tr.w * t, tr.y + tr.h / 2, k < 0.44)
+      if (k < 0.36) caption('All the way across.')
+      else caption(`Down <span class="down">${fmtMoney(Math.abs(PL_POS.gain))}</span> since I bought it. Same shape, opposite direction.`)
+    },
+  },
+
+  /* ---- 7. the one it will not mirror -------------------------------------------- */
+  {
+    name: 'lifted', secs: 11,
+    enter() { hideCards(); openDetail('HODL'); paintDetail(0); shotsDetail(); applyCam(SHOTS.chart); cursor(null) },
+    at(k) {
+      paintDetail(0)
+      applyCam(k < 0.62
+        ? camLerp(SHOTS.chart, SHOTS.badge, easeInOut(seg(k, 0.44, 0.56)))
+        : camLerp(SHOTS.badge, SHOTS.note, easeInOut(seg(k, 0.62, 0.74))))
+      if (k < 0.22) caption('Hodl Brothers. The day is green. The position is not.')
+      else if (k < 0.46) caption("A mirror would spend the day's gain to rescue the year.")
+      else if (k < 0.58) caption('So it will not use one.')
+      else if (k < 0.74) caption('The badge reads <span class="up">Lifted</span>. Not <span class="up">Mirrored</span>.')
+      else if (k < 0.88) caption(`Lifted <span class="up">${fmtMoney(HODL_LIFT)}</span> to clear what I paid.`)
+      else caption('The shape is untouched. Only the numbers are wrong.')
+    },
+  },
+
+  /* ---- 8. the joke is visual only ----------------------------------------------- */
+  {
+    name: 'screenreader', secs: 9,
+    enter() {
+      hideCards(); openDetail('PLNGE'); paintDetail(0); shotsDetail(); applyCam(SHOTS.chartTop)
+      cursor(null); $('#srtext').innerHTML = srTextFor('PLNGE')
+    },
+    at(k) {
+      paintDetail(0)
+      applyCam(SHOTS.chartTop)
+      const panel = $('#srpanel')
+      if (k >= 0.16) {
+        panel.classList.add('show')
+        panel.style.transform = `translateY(${(1 - easeOut(seg(k, 0.16, 0.32))) * 120}px)`
+        panel.style.opacity = easeOut(seg(k, 0.16, 0.30))
+      } else panel.classList.remove('show')
+      if (k < 0.16) caption(`The chart says up <span class="up">${fmtPct(PL.shown.pct)}</span>.`)
+      else if (k < 0.62) caption('This is what a screen reader is handed on the same screen.')
+      else caption('The joke is visual only. The accessibility layer never lies.')
+    },
+  },
+
+  /* ---- 9. the negative space ---------------------------------------------------- */
+  {
+    name: 'end', secs: 8,
+    enter() { hideCards(); $('#endcard').classList.add('show'); cursor(null) },
+    at(k) {
+      if (k < 0.46) caption('React, TypeScript, hand-rolled SVG. 77 tests, mostly about the maths.')
+      else caption('Repo in the first comment.')
+    },
+  },
+]
+
+/* ===========================================================================
+   7. The frame pump. The page owns the timeline; the recorder just pulls.
+   =========================================================================== */
+const PLAN = (() => {
+  let start = 0
+  return SCENES.map((s) => { const n = Math.round(s.secs * FPS), e = { scene: s, start, frames: n }; start += n; return e })
+})()
+const TOTAL_FRAMES = PLAN.reduce((s, p) => s + p.frames, 0)
+
+let current = null
+function renderFrame(i) {
+  const p = PLAN.find((x) => i >= x.start && i < x.start + x.frames) ?? PLAN[PLAN.length - 1]
+  if (p !== current) { current = p; p.scene.enter() }
+  const local = Math.min(i - p.start, p.frames - 1)
+  p.scene.at(p.frames > 1 ? local / (p.frames - 1) : 0, local)
+}
+
+window.__demo = {
+  fps: FPS,
+  width: 1920,
+  height: 1080,
+  totalFrames: TOTAL_FRAMES,
+  seconds: TOTAL_FRAMES / FPS,
+  frame: -1,
+  ready: false,
+  /** True only once the final frame is on screen. The recorder stops on this. */
+  done: false,
+  /** Rewind, so a recorder always starts from the thumbnail. */
+  reset() { current = null; this.frame = -1; this.done = false; renderFrame(0); this.frame = -1 },
+  /** Advance one frame and report where we are. The page decides when it is over. */
+  next() {
+    if (this.done) return { frame: this.frame, done: true }
+    this.frame += 1
+    renderFrame(this.frame)
+    this.done = this.frame >= TOTAL_FRAMES - 1
+    return { frame: this.frame, done: this.done, scene: current.scene.name }
+  },
+}
+
+/* Frame 0 is the thumbnail, so it is drawn before anything reports ready — and ready
+   waits on the fonts, or the first frames go out in a fallback face. */
+renderFrame(0)
+document.fonts.ready.then(() => {
+  renderFrame(0)
+  requestAnimationFrame(() => requestAnimationFrame(() => { window.__demo.ready = true }))
+})
+</script>
+</body>
+</html>
