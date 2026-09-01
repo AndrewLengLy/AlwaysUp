@@ -192,7 +192,7 @@ npm run demo
 ```
 
 One command, no manual conversion step. It writes `demo/alwaysup-demo.mp4` — 1920x1080,
-68 seconds, H.264 at CRF 20, `yuv420p`, 25 fps, `+faststart`, and no audio track, because
+62 seconds, H.264 at CRF 20, `yuv420p`, 25 fps, `+faststart`, and no audio track, because
 the captions are burned into the frame and social feeds autoplay muted.
 
 The source is [`demo/index.html`](demo/index.html): one self-contained page that makes no

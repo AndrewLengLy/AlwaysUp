@@ -181,16 +181,12 @@
   .ov { position: absolute; inset: 0; display: none; flex-direction: column; }
   .ov.show { display: flex; }
 
-  #titlecard, #endcard { background: var(--black); padding: 92px 120px; }
+  #titlecard { background: var(--black); padding: 92px 120px; }
   .tc-name { font-size: 128px; font-weight: 700; letter-spacing: -0.045em; line-height: .9; }
   .tc-claim { font-size: 46px; font-weight: 500; color: var(--c200); letter-spacing: -0.015em; line-height: 1.2; }
   .tc-rule { height: 1px; background: var(--c800); }
   .tc-meta { display: flex; align-items: center; gap: 20px; font-size: 21px; color: var(--c500); }
   .tc-meta .mono { color: var(--c400); }
-
-  .refusals { display: flex; flex-direction: column; gap: 20px; }
-  .refusals div { display: flex; align-items: baseline; gap: 18px; font-size: 34px; color: var(--white); font-weight: 500; }
-  .refusals span { color: var(--down400); font-family: var(--mono); font-size: 26px; }
 
   /* the screen-reader panel */
   #srpanel { display: none; position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 84px 30px; background: var(--black); }
@@ -232,7 +228,6 @@
     </div>
     <div id="cursor"><div class="ring"></div></div>
     <div class="ov" id="titlecard"></div>
-    <div class="ov" id="endcard"></div>
   </div>
 
   <div id="capband">
@@ -829,7 +824,7 @@ function srTextFor(tk) {
   return `Actual price history, unmodified: opened at <u>${fmtPrice(real.from)}</u>, last <u>${fmtPrice(real.to)}</u>, a real change of <u>${real.pct >= 0 ? 'up' : 'down'} ${Math.abs(real.pct).toFixed(2)} percent</u>. The chart above may be displaying a mirrored version of this data. Against a cost of ${fmtPrice(basis)} a share, the real position is <u>${fmtSpokenReturn(p.gain, p.pct)}</u>.`
 }
 
-/* --- the two cards ---------------------------------------------------------- */
+/* --- the title card ---------------------------------------------------------- */
 $('#titlecard').innerHTML = `
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px">
     <div class="tc-name">AlwaysUp</div>
@@ -842,25 +837,8 @@ $('#titlecard').innerHTML = `
     <span class="mono">Simulated market data</span><span>&middot;</span><span>Andrew Ly</span>
   </div>`
 
-$('#endcard').innerHTML = `
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:44px">
-    <div style="font-size:26px;letter-spacing:.2em;text-transform:uppercase;color:var(--c500);font-weight:700">What it refuses to do</div>
-    <div class="refusals">
-      <div><span>01</span>Hide the badge that names the distortion.</div>
-      <div><span>02</span>Call a lift a mirror.</div>
-      <div><span>03</span>Lie to a screen reader.</div>
-      <div><span>04</span>Invent a price under a real ticker without saying so.</div>
-    </div>
-  </div>
-  <div class="tc-rule"></div>
-  <div class="tc-meta" style="padding-top:28px">
-    <span style="font-size:30px;font-weight:700;color:var(--white);letter-spacing:-.02em">AlwaysUp</span>
-    <span>&middot;</span><span class="mono">React &middot; TypeScript &middot; hand-rolled SVG</span>
-    <span style="margin-left:auto" class="recon"><i></i>Reconstruction &middot; simulated data</span>
-  </div>`
-
 /* ===========================================================================
-   6. The script. Nine scenes, 68 seconds, 25 fps.
+   6. The script. Eight scenes, 62 seconds, 25 fps.
    =========================================================================== */
 const FPS = 25
 const REAL_VALUE = TOTAL[TOTAL.length - 1].p
@@ -873,7 +851,7 @@ const HODL_POS = positionAt(changeOf(Q.HODL.points).to, SHARES.HODL, BASIS.HODL)
 
 const union = (a, b) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.max(a.x + a.w, b.x + b.w) - Math.min(a.x, b.x), h: Math.max(a.y + a.h, b.y + b.h) - Math.min(a.y, b.y) })
 const centre = (sel) => { const r = rectIn($(sel)); return [r.x + r.w / 2, r.y + r.h / 2] }
-const hideCards = () => { $('#titlecard').classList.remove('show'); $('#endcard').classList.remove('show'); $('#srpanel').classList.remove('show') }
+const hideCards = () => { $('#titlecard').classList.remove('show'); $('#srpanel').classList.remove('show') }
 
 let SHOTS = {}
 function shotsPortfolio() {
@@ -1003,7 +981,7 @@ const SCENES = [
 
   /* ---- 8. the joke is visual only ----------------------------------------------- */
   {
-    name: 'screenreader', secs: 9,
+    name: 'screenreader', secs: 11,
     enter() {
       hideCards(); openDetail('PLNGE'); paintDetail(0); shotsDetail(); applyCam(SHOTS.chartTop)
       cursor(null); $('#srtext').innerHTML = srTextFor('PLNGE')
@@ -1020,16 +998,6 @@ const SCENES = [
       if (k < 0.16) caption(`The chart says up <span class="up">${fmtPct(PL.shown.pct)}</span>.`)
       else if (k < 0.62) caption('This is what a screen reader is handed on the same screen.')
       else caption('The joke is visual only. The accessibility layer never lies.')
-    },
-  },
-
-  /* ---- 9. the negative space ---------------------------------------------------- */
-  {
-    name: 'end', secs: 8,
-    enter() { hideCards(); $('#endcard').classList.add('show'); cursor(null) },
-    at(k) {
-      if (k < 0.46) caption('React, TypeScript, hand-rolled SVG. 77 tests, mostly about the maths.')
-      else caption('Repo in the first comment.')
     },
   },
 ]
