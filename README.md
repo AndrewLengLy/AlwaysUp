@@ -192,8 +192,26 @@ npm run demo
 ```
 
 One command, no manual conversion step. It writes `demo/alwaysup-demo.mp4` — 1920x1080,
-58 seconds, H.264 at CRF 20, `yuv420p`, 25 fps, `+faststart`, and no audio track, because
+61 seconds, H.264 at CRF 20, `yuv420p`, 25 fps, `+faststart`, and no audio track, because
 the captions are burned into the frame and social feeds autoplay muted.
+
+The pointer is driven by a model of aimed human movement rather than by keyframes.
+A reach is one ballistic throw that usually falls a little short — the primary
+submovement's gain averages about 0.94, so most attempts undershoot — followed by a beat
+while the eye closes the loop and then a corrective leg that lands exactly. How long that
+takes comes from Fitts's law in Shannon form, so a long throw at a small target costs more
+than a short one at a big target. The path bows slightly, the hand never freezes between
+actions, and the micro-motion is rendered as what a 25fps capture of an 8-12Hz tremor
+looks like rather than as the tremor itself, which no frame rate this low can resolve.
+None of it uses `Math.random`: it all runs off the same seeded PRNG as the prices, so the
+file still encodes identically on every machine.
+
+Every click causes what follows it. A holding opens because a row was pressed, the badge's
+tooltip appears because the pointer rested on the badge, and the mirror track's value is
+read off the pointer rather than the pointer being placed at a value the script already
+chose — quantised to the control's own `step=1`, so a hand's sub-pixel tremor cannot move
+it and the mid-flip reads exactly `+0.00`. The hover states are the app's own Tailwind
+`hover:` pairs, and the cursor is whichever shape the app's CSS asks for under that pixel.
 
 There is no title card, no closing card and no camera. The app is shown whole, at one
 constant scale, from the first frame to the last: no pans, no push-ins, no cutting to an

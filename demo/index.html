@@ -133,7 +133,6 @@
     border: 1px solid var(--c700); background: transparent; color: var(--white);
   }
   .btn.primary { background: var(--white); color: var(--black); border-color: var(--white); }
-  .btn.press { border-color: var(--c500); background: var(--c800); }
 
   /* ---- portfolio --------------------------------------------------------------- */
   #pf .grid { display: grid; grid-template-columns: 320px 1fr; gap: 32px; align-items: start; }
@@ -192,14 +191,29 @@
   #srpanel .body u { text-decoration: none; color: var(--down400); }
 
   /* the synthetic pointer */
-  #cursor { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; display: none; pointer-events: none; z-index: 40; }
+  /* The pointer is the machine's, not a presenter's dot: the hotspot is the tip,
+     the glyph does not pulse on click, and the shape is whichever one the app's own
+     CSS asks for under that pixel. A ring that blooms when you click is a thing no
+     screen recording has ever contained. */
+  /* The badge's own title attribute, drawn the way the OS draws one. The README says
+     the label is terse and the full sentence lives in its tooltip; this is that sentence. */
+  #tip { position: absolute; display: none; z-index: 39; max-width: 430px;
+    background: #2b2b2b; color: #e6e6e6; border: 1px solid #4a4a4a; border-radius: 4px;
+    padding: 5px 8px; font-size: 15px; line-height: 1.35; font-family: var(--sans);
+    box-shadow: 0 3px 12px rgba(0,0,0,.5); }
+  #tip.show { display: block; }
+
+  /* Scaled up from life size: at 1920 wide, an OS-sized pointer is four pixels on a
+     phone. The hotspot stays the transform origin, so it still points at what it hits. */
+  #cursor { position: absolute; display: none; pointer-events: none; z-index: 40;
+    transform: scale(1.65); transform-origin: 0 0;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
   #cursor.show { display: block; }
-  #cursor .ring {
-    width: 46px; height: 46px; border-radius: 50%;
-    border: 3px solid var(--white); background: rgba(250,250,250,.16);
-    box-shadow: 0 0 0 2px rgba(10,10,10,.85), 0 6px 22px rgba(0,0,0,.6);
-  }
-  #cursor.down .ring { transform: scale(.62); background: rgba(250,250,250,.6); }
+  #cursor svg { display: block; }
+  #cursor .g { display: none; }
+  #cursor[data-shape="default"] .g-default,
+  #cursor[data-shape="pointer"] .g-pointer,
+  #cursor[data-shape="ew"] .g-ew { display: block; }
 </style>
 </head>
 <body>
@@ -220,7 +234,18 @@
       </div>
       <div class="body" id="srtext"></div>
     </div>
-    <div id="cursor"><div class="ring"></div></div>
+    <div id="tip"></div>
+    <div id="cursor" data-shape="default">
+      <svg class="g g-default" width="23" height="25" viewBox="0 0 23 25">
+        <path d="M1 1v18.4l4.7-4.4 2.7 6.2 3.1-1.3-2.7-6.1h6.4z" fill="#fafafa" stroke="#0a0a0a" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
+      <svg class="g g-pointer" width="24" height="27" viewBox="0 0 24 27" style="margin:-2px 0 0 -7px">
+        <path d="M9 3.1a2.2 2.2 0 0 1 4.4 0v7.7l1.1-.4a2.1 2.1 0 0 1 2.7 1.1l.2.5 2.3 1a2.2 2.2 0 0 1 1.3 2.4l-.9 4.5a3.5 3.5 0 0 1-3.4 2.8h-5a3.5 3.5 0 0 1-2.7-1.3l-4-5.1a1.9 1.9 0 0 1 2.9-2.5l1.1 1.1z" fill="#fafafa" stroke="#0a0a0a" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
+      <svg class="g g-ew" width="30" height="18" viewBox="0 0 30 18" style="margin:-9px 0 0 -15px">
+        <path d="M7 5 2 9l5 4V10.4h16V13l5-4-5-4v2.6H7z" fill="#fafafa" stroke="#0a0a0a" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
+    </div>
   </div>
 
   <div id="capband">
@@ -705,9 +730,84 @@ function applyCam(c) {
 }
 
 const cursorEl = $('#cursor')
+
+/**
+ * What the pointer is over, and therefore what it looks like and what lights up.
+ *
+ * Every entry is lifted from the shipping app rather than invented for the video:
+ * the shapes are the ones its CSS actually asks for (`cursor-pointer` on a holding
+ * row and on a comforted chart, `ew-resize` on the scrub, and the browser default
+ * on a button, because the app never overrides it there), and the hover styling is
+ * the Tailwind hover: pair from the same element. A demo that invents a hover state
+ * is drawing a screen the app cannot produce.
+ */
+const HOVERS = [
+  /* .row — cursor-pointer, hover:bg-pbx-800/60   (src/screens/Portfolio.tsx) */
+  { sel: '.row', shape: 'pointer', on: (el, v) => { el.style.background = `rgba(31,31,31,${(0.6 * v).toFixed(3)})` } },
+  /* Button — no cursor override, hover:border-pbx-500 hover:bg-pbx-800  (src/components/ui.tsx) */
+  { sel: '.btn:not(.primary)', shape: 'default', on: (el, v) => {
+      el.style.borderColor = mixHex('#2a2a2a', '#808080', v); el.style.background = `rgba(31,31,31,${v.toFixed(3)})` } },
+  /* Primary button — hover:bg-pbx-200 */
+  { sel: '.btn.primary', shape: 'default', on: (el, v) => {
+      el.style.background = mixHex('#fafafa', '#d4d4d4', v); el.style.borderColor = mixHex('#fafafa', '#d4d4d4', v) } },
+  /* Reveal all / back link — text-pbx-400 hover:text-pbx-white */
+  { sel: '#revealall:not(.on)', shape: 'default', on: (el, v) => { el.style.color = mixHex('#9ca3af', '#fafafa', v) } },
+  { sel: '.back', shape: 'default', on: (el, v) => { el.style.color = mixHex('#9ca3af', '#fafafa', v) } },
+  /* Range tab — hover:border-pbx-800 hover:text-pbx-white  (src/screens/Detail.tsx) */
+  { sel: '.ranges b:not(.on)', shape: 'default', on: (el, v) => {
+      el.style.borderColor = `rgba(31,31,31,${v.toFixed(3)})`; el.style.color = mixHex('#9ca3af', '#fafafa', v) } },
+  /* The scrub is a real range input: ew-resize, and no colour change of its own. */
+  { sel: '#mr-track', shape: 'ew', pad: 21, on: () => {} },
+  /* A comforted chart is cursor-pointer, because tapping it flips it. */
+  { sel: '#chartbox', shape: 'pointer', on: () => {} },
+]
+
+
+/* Hover fades rather than snaps, because the app's elements carry transition-colors.
+   Ramped per frame rather than left to CSS: a real transition runs on wall-clock time,
+   and this page is stepped frame by frame, so CSS would make the output depend on how
+   fast the recording machine is. */
+const hoverLevel = new Map()
+function paintHover(appX, appY, down) {
+  let shape = 'default', hit = null
+  for (const h of HOVERS) {
+    for (const el of app.querySelectorAll(h.sel)) {
+      if (el.offsetParent === null) continue
+      const r = rectIn(el), pad = h.pad ?? 0
+      if (appX >= r.x - pad && appX <= r.x + r.w + pad && appY >= r.y - pad && appY <= r.y + r.h + pad) { hit = el; shape = h.shape }
+    }
+  }
+  for (const h of HOVERS) {
+    for (const el of app.querySelectorAll(h.sel)) {
+      const want = el === hit ? 1 : 0
+      const now = hoverLevel.get(el) ?? 0
+      const next = now + (want - now) * 0.45   /* ~160ms to settle, the app's transition */
+      hoverLevel.set(el, Math.abs(next - want) < 0.002 ? want : next)
+      h.on(el, hoverLevel.get(el))
+      /* The app puts a row into its held state on pointerdown, before it knows whether
+         this is a tap or a press-and-hold, so the video does too. */
+      if (h.sel === '.row') el.classList.toggle('held', down && el === hit)
+    }
+  }
+  return shape
+}
+
+const tipEl = $('#tip')
+/** A native tooltip, after the pointer has rested. Below and right of it, as macOS does. */
+function tooltip(show, appX, appY, text) {
+  tipEl.classList.toggle('show', !!show)
+  if (!show) return
+  tipEl.textContent = text
+  tipEl.style.left = (STAGE_W / 2 + (appX - CAM.cx) * CAM.s + 8) + 'px'
+  tipEl.style.top = (STAGE_H / 2 + (appY - CAM.cy) * CAM.s + 22) + 'px'
+}
+
+/** Put the pointer somewhere. Hidden only when it is genuinely off the window. */
 function cursor(appX, appY, down) {
   if (appX == null) { cursorEl.className = ''; return }
-  cursorEl.className = down ? 'show down' : 'show'
+  const shape = paintHover(appX, appY, down)
+  cursorEl.className = 'show'
+  cursorEl.dataset.shape = shape
   cursorEl.style.left = (STAGE_W / 2 + (appX - CAM.cx) * CAM.s) + 'px'
   cursorEl.style.top = (STAGE_H / 2 + (appY - CAM.cy) * CAM.s) + 'px'
 }
@@ -715,6 +815,19 @@ function cursor(appX, appY, down) {
 /* Easing. The flip spring is the app's own: stiffness 130, damping 12, mass 1. */
 const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
 const easeOut = (k) => 1 - Math.pow(1 - k, 3)
+/**
+ * The app's springs in closed form. Mass 1, so w0 = sqrt(stiffness) and
+ * zeta = damping / (2*w0). Chart.tsx opens a comforted chart on 90/15 and flips it
+ * on 130/12; both are under-damped, which is the whole reason the line overshoots.
+ */
+function spring(t, stiffness, damping) {
+  const w0 = Math.sqrt(stiffness), z = damping / (2 * w0)
+  if (t <= 0) return 0
+  if (z >= 1) { const a = w0 * t; return 1 - Math.exp(-a) * (1 + a) }
+  const wd = w0 * Math.sqrt(1 - z * z)
+  return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + ((z * w0) / wd) * Math.sin(wd * t))
+}
+
 function springK(k, dur = 1.4) {
   const tau = clamp01(k) * dur
   return 1 - Math.exp(-6 * tau) * (Math.cos(9.6952 * tau) + 0.61887 * Math.sin(9.6952 * tau))
@@ -728,20 +841,39 @@ const seg = (k, a, b) => clamp01((k - a) / (b - a))
 const BADGES = {
   comfort: ['Comfort', ''], mirrored: ['Mirrored', 'on'], lifted: ['Lifted', 'on'], reality: ['Showing reality', 'real'],
 }
+/**
+ * Position only, both of them, because the app is emphatic about it: "The badge is
+ * non-dismissible, so nothing about it may depend on an animation having run"
+ * (src/components/ui.tsx). Neither the screen nor the badge fades — they arrive from
+ * 6px down and that is all — so neither does the reconstruction.
+ */
+let NOW_FRAME = 0, screenAt = -999, badgeAt = -999, lastScreen = '', lastBadge = ''
+function applyEntries() {
+  const sc = $(lastScreen === 'dt' ? '#dt' : '#pf')
+  sc.style.transform = `translateY(${(6 * (1 - easeInOut(clamp01((NOW_FRAME - screenAt) / (0.18 * FPS))))).toFixed(2)}px)`
+  $('#badge').style.transform = `translateY(${(6 * (1 - easeInOut(clamp01((NOW_FRAME - badgeAt) / (0.16 * FPS))))).toFixed(2)}px)`
+}
+
 function setBadge(kind) {
   const [text, cls] = BADGES[kind]
+  if (text !== lastBadge) { lastBadge = text; badgeAt = NOW_FRAME }
   $('#badge').className = 'badge ' + cls
   $('#badge-t').textContent = text
 }
 
 function showScreen(name) {
+  if (name !== lastScreen) { lastScreen = name; screenAt = NOW_FRAME }
   $('#pf').style.display = name === 'pf' ? '' : 'none'
   $('#dt').style.display = name === 'dt' ? '' : 'none'
-  $('.url').textContent = name === 'pf' ? 'localhost:5173/portfolio' : `localhost:5173/${DETAIL.ticker}`
+  /* The address bar does not move, because in the app it cannot: `view` is a useState
+     in StoreProvider and there is no router and no pushState anywhere. A reconstruction
+     that invents a URL change is lying about the one thing a viewer can check by
+     running `npm run dev`, in a video whose whole claim is that it discloses itself. */
+  $('.url').textContent = 'localhost:5173/'
 }
 
 /* --- portfolio -------------------------------------------------------------- */
-function paintPortfolio({ truth = false, revealAll = false, pressed = null, rowT = 0 }) {
+function paintPortfolio({ truth = false, revealAll = false, rowsOn = null, rowT = 0 }) {
   const series = truth ? TOTAL : TOTAL_SHOWN
   const chg = changeOf(series), value = series[series.length - 1].p
   const gain = value - TOTAL_COST
@@ -751,16 +883,19 @@ function paintPortfolio({ truth = false, revealAll = false, pressed = null, rowT
   $('#total-ret').innerHTML = chgHTML(gain, (gain / TOTAL_COST) * 100, 12.5)
   const btn = $('#total-btn')
   btn.textContent = truth ? 'Back to comfort' : 'Show the real total'
-  btn.className = 'btn' + (truth ? ' primary' : '') + (pressed === 'total' ? ' press' : '')
+  btn.className = 'btn' + (truth ? ' primary' : '')
+  /* Hand the button's colours back to the hover pass, which runs after this one. */
+  btn.style.removeProperty('background'); btn.style.removeProperty('border-color')
   $('#total-note').style.display = truth ? 'none' : ''
   const ra = $('#revealall')
   ra.textContent = revealAll ? 'Hide reality' : 'Reveal all'
-  ra.style.color = revealAll ? 'var(--down400)' : (pressed === 'reveal' ? 'var(--white)' : 'var(--c400)')
-  setBadge(truth || (revealAll && rowT > 0.5) ? 'reality' : 'mirrored')
+  ra.className = 'lbl' + (revealAll ? ' on' : '')
+  if (revealAll) ra.style.color = 'var(--down400)'; else ra.style.removeProperty('color')
+  setBadge(truth || ((rowsOn ?? revealAll) && rowT > 0.5) ? 'reality' : 'mirrored')
 
   for (const r of ROWS) {
     const node = $(`#row-${r.ticker}`)
-    const on = revealAll && r.comfort.kind !== 'none'
+    const on = (rowsOn ?? revealAll) && r.comfort.kind !== 'none'
     const k = on ? rowT : 0
     const last = lerp(r.display[r.display.length - 1].p, r.quote.points[r.quote.points.length - 1].p, k)
     const c = { abs: lerp(r.change.abs, r.real.abs, k), pct: lerp(r.change.pct, r.real.pct, k) }
@@ -825,6 +960,75 @@ function srTextFor(tk) {
    6. The script. Seven scenes, 58 seconds, 25 fps.
    =========================================================================== */
 const FPS = 25
+
+/* ---------------------------------------------------------------------------
+   A hand, not a tween.
+
+   The pointer used to be keyframed: linear or eased straight lines between two
+   points, arriving dead on centre at a time the script had decided in advance.
+   Nothing about that is how an arm works, and it is the first thing that gives a
+   fake demo away — long before anyone examines the numbers.
+
+   So the pointer is driven by a model of aimed movement instead, and the scene's
+   length falls out of how long its actions actually take rather than the other way
+   round. Nothing here may reach for Math.random: the page is stepped frame by frame
+   by the recorder and has to encode identically on every machine, so every wobble is
+   a pure function of the frame index.
+   --------------------------------------------------------------------------- */
+
+/* The same PRNG the prices use, so the hand is as reproducible as the market fiction:
+   one scene-supplied string in, one trajectory out, on any machine in any year. */
+const handRnd = (tag) => mulberry32(hash('hand:' + tag))
+
+const mix32 = (h) => { let x = h >>> 0; x ^= x >>> 16; x = Math.imul(x, 2246822507); x ^= x >>> 13; x = Math.imul(x, 3266489909); return (x ^ (x >>> 16)) >>> 0 }
+const vsig = (sd, n) => mix32(sd ^ Math.imul(n, 0x9e3779b1)) / 2147483647.5 - 1
+const vnoise = (sd, x) => {
+  const i = Math.floor(x), t = x - i
+  return lerp(vsig(sd, i), vsig(sd, i + 1), t * t * t * (t * (t * 6 - 15) + 10))
+}
+
+/**
+ * Micro-motion: what a hand does when it is doing nothing.
+ *
+ * Physiological tremor sits at 8-12Hz (Elble & Koller, 1990), and 25fps has a Nyquist of
+ * 12.5Hz — two to three samples a cycle, so no waveform survives and the energy folds
+ * down. Do not animate tremor; animate what a capture of it looks like. Four bands:
+ * postural drift and re-grip below half a hertz, an aliased mid band, and a deliberately
+ * tiny 10Hz term for the sub-pixel shimmer real footage has. The point is not that a real
+ * cursor visibly shakes. It is that it never reads exactly the same number twice.
+ */
+const MICRO = [[0.07, 3.2], [0.33, 1.35], [3.1, 0.5], [10.3, 0.28]]  /* Hz, px */
+function micro(tag, f, gain) {
+  if (!gain) return [0, 0]
+  const sx = hash(tag + '·x'), sy = hash(tag + '·y'), t = f / FPS
+  let x = 0, y = 0
+  for (let i = 0; i < MICRO.length; i++) {
+    const b = Math.imul(i + 1, 0x85ebca6b), [hz, a] = MICRO[i]
+    x += a * vnoise(sx ^ b, t * hz)
+    y += a * vnoise(sy ^ b, t * hz * 0.87)   /* detuned, or the drift runs on a diagonal */
+  }
+  return [x * gain, y * gain]
+}
+/* Gain by what the hand is doing. A hand braced on a held button is much stiller than one
+   resting, and one holding a slider it is reading is stiller again. */
+const GAIN = { idle: 1, flight: 0.45, held: 0.28, drag: 0.18 }
+
+/** Flash & Hogan, 1985: the minimum-jerk quintic, whose derivative is the bell-shaped
+    speed profile every aimed human movement shows. */
+const minJerk = (u) => { const t = clamp01(u); return t * t * t * (10 + t * (-15 + 6 * t)) }
+
+/**
+ * Fitts's law, Shannon form (MacKenzie, 1992): MT = a + b·log2(D/W + 1).
+ *
+ * a = 100ms, b = 150ms/bit, so 6.7 bits/s. ISO 9241-9 populations sit at 3.7-4.9 bits/s
+ * (Soukoreff & MacKenzie, 2004) and Card, English & Burr (1978) put an expert mouse slope
+ * near 96ms/bit; this is someone driving an app they wrote, so it belongs at the fast end.
+ * W is the smaller of the target's two dimensions (Accot & Zhai, 2003), floored at 16px
+ * because nobody aims at a 13px text box, they aim at the word.
+ */
+const fittsFrames = (d, w, mult = 1) =>
+  Math.max(5, Math.round(((100 + 150 * Math.log2(d / Math.max(w, 16) + 1)) * mult * FPS) / 1000))
+
 const REAL_VALUE = TOTAL[TOTAL.length - 1].p
 const REAL_GAIN = REAL_VALUE - TOTAL_COST
 const SHOWN_GAIN = TOTAL_SHOWN[TOTAL_SHOWN.length - 1].p - TOTAL_COST
@@ -832,117 +1036,317 @@ const PL = { real: changeOf(Q.PLNGE.points), shown: changeOf(applyComfort(Q.PLNG
 const PL_POS = positionAt(PL.real.to, SHARES.PLNGE, BASIS.PLNGE)
 const HODL_LIFT = comfortOf(Q.HODL.points, BASIS.HODL).delta
 const HODL_POS = positionAt(changeOf(Q.HODL.points).to, SHARES.HODL, BASIS.HODL)
+const HODL_SHOWN = changeOf(applyComfort(Q.HODL.points, comfortOf(Q.HODL.points, BASIS.HODL)))
+/* Verbatim from LIFTED.detail in src/components/ui.tsx. */
+const LIFTED_DETAIL = 'A chart a mirror cannot rescue — a green day on a position that is still underwater — has been moved bodily up the price axis to clear what you paid. Its shape is untouched and every price on it is wrong by the same amount.'
 
-const centre = (sel) => { const r = rectIn($(sel)); return [r.x + r.w / 2, r.y + r.h / 2] }
 const hideSrPanel = () => $('#srpanel').classList.remove('show')
+
+const clip = (v, a, b) => (v < a ? a : v > b ? b : v)
+
+/**
+ * A hand.
+ *
+ * Segments are appended in order, each reporting how many frames it needs; mark() names
+ * a moment so a caption can hang off what the hand is doing rather than off a fraction
+ * somebody tuned by eye. Targets are resolved to absolute coordinates when the plan is
+ * built, not read from the DOM each frame — otherwise a button whose label shortens from
+ * "Show the real total" to "Back to comfort" drags the stationary pointer nine pixels
+ * left with it, which is a thing hands do not do.
+ */
+function hand(name, x0, y0) {
+  const segs = []
+  const marks = {}
+  let cx = x0, cy = y0, n = 0, nth = 0
+  const push = (frames, fn) => { const f = Math.max(1, Math.round(frames)); segs.push({ start: n, frames: f, fn }); n += f }
+  const F = (secs) => Math.max(1, Math.round(secs * FPS))
+
+  const api = {
+    get frames() { return n },
+    mark(k) { marks[k] = n; return api },
+    at(k) { return marks[k] ?? 0 },
+
+    /** Sit still — which for a hand on a mouse means drift, not freeze. */
+    wait(secs) {
+      const x = cx, y = cy, tag = `${name}:${++nth}`
+      push(F(secs), (f) => { const [mx, my] = micro(tag, f, GAIN.idle); return [x + mx, y + my, false] })
+      return api
+    },
+
+    /**
+     * Reach for a point.
+     *
+     * One ballistic throw that typically falls *short* — the primary submovement's gain
+     * averages about 0.94, so roughly six trials in seven undershoot (Woodworth 1899;
+     * Meyer et al. 1988) — then a beat while the eye closes the loop, then a corrective
+     * leg that lands exactly. Short or easy targets get no correction at all, because
+     * there is nothing left to correct.
+     */
+    toXY(tx, ty, width, mult = 1) {
+      const sx = cx, sy = cy, tag = `${name}:${++nth}`, rnd = handRnd(tag)
+      const D = Math.hypot(tx - sx, ty - sy), W = Math.max(width, 16)
+      const total = fittsFrames(D, W, mult), ID = Math.log2(D / W + 1)
+      const corrects = D > 14 && total >= 8 && rnd() < clip((ID - 1.2) / 3.2, 0, 0.92)
+      /* Sum of three uniforms for a cheap, bounded normal. */
+      const g1 = corrects ? clip(0.94 + 0.088 * (rnd() + rnd() + rnd() - 1.5), 0.84, 1.06) : 1
+      const lat = corrects ? clip((rnd() - 0.5) * 0.036 * D, -5, 5) : 0
+      const bow = D < 40 ? 0 : clip((rnd() < 0.5 ? -1 : 1) * D * (0.018 + 0.018 * rnd()), -28, 28)
+      const ux = D ? (tx - sx) / D : 0, uy = D ? (ty - sy) / D : 0
+      const px1 = sx + (tx - sx) * g1 - uy * lat, py1 = sy + (ty - sy) * g1 + ux * lat
+
+      const nP = corrects ? Math.max(4, Math.round(total * 0.7)) : total
+      const nG = corrects ? Math.max(1, Math.round(total * 0.09)) : 0
+      const nC = corrects ? Math.max(2, total - nP - nG) : 0
+
+      push(nP, (f) => {
+        const u = (f + 1) / nP, sN = minJerk(u)
+        /* The path bows, and its peak sits at about 44% along (Morasso, 1981). */
+        const b = bow * Math.sin(Math.PI * Math.pow(sN, 0.85))
+        const [mx, my] = micro(tag, f, GAIN.flight)
+        return [sx + (px1 - sx) * sN - uy * b + mx, sy + (py1 - sy) * sN + ux * b + my, false]
+      })
+      if (corrects) {
+        push(nG, (f) => { const [mx, my] = micro(tag, nP + f, GAIN.flight); return [px1 + mx, py1 + my, false] })
+        push(nC, (f) => {
+          const sN = minJerk((f + 1) / nC), [mx, my] = micro(tag, nP + nG + f, GAIN.flight)
+          return [px1 + (tx - px1) * sN + mx, py1 + (ty - py1) * sN + my, false]
+        })
+      }
+      cx = tx; cy = ty
+      return api
+    },
+
+    /** Reach for an element. Aim lands off centre, because nobody clicks the exact middle. */
+    to(sel, dx = 0, dy = 0) {
+      const r = rectIn($(sel)), rnd = handRnd(`${name}:aim${nth + 1}`)
+      return api.toXY(r.x + r.w / 2 + dx + (rnd() - 0.5) * r.w * 0.22,
+                      r.y + r.h / 2 + dy + (rnd() - 0.5) * r.h * 0.3,
+                      Math.min(r.w, r.h))
+    },
+
+    /**
+     * Arrive, hesitate, press, let go. The dwell is the eye confirming the target —
+     * ~120ms when the move was pre-planned, ~200ms otherwise (Card, Moran & Newell 1983).
+     * The press is 3 frames: humans run 50-150ms, and 2 frames can vanish into a cut.
+     */
+    click(dwell = 0.2, hold = 0.12) {
+      const x = cx, y = cy, tag = `${name}:${++nth}`
+      push(F(dwell), (f) => { const [mx, my] = micro(tag, f, GAIN.idle); return [x + mx, y + my, false] })
+      push(F(hold), (f) => { const [mx, my] = micro(tag, 400 + f, GAIN.held); return [x + mx, y + my, true] })
+      return api
+    },
+
+    /** Take hold of something, with the beat of hesitation that precedes a drag. */
+    grab(secs = 0.16) {
+      const x = cx, y = cy, tag = `${name}:${++nth}`
+      push(F(secs), (f) => { const [mx, my] = micro(tag, f, GAIN.held); return [x + mx, y + my, true] })
+      return api
+    },
+
+    /**
+     * Drag, which is not a reach: you are watching the thing move, so it costs about 45%
+     * more than the same distance pointed at (MacKenzie, Sellen & Buxton, 1991), it goes
+     * past where you wanted, and you hunt back onto the value rather than arriving at it.
+     */
+    dragXY(tx, ty, width) {
+      const sx = cx, sy = cy, tag = `${name}:${++nth}`, rnd = handRnd(tag)
+      const D = Math.hypot(tx - sx, ty - sy)
+      const frames = fittsFrames(D, width, 1.45)
+      const over = 0.06 + 0.06 * rnd()
+      push(frames, (f) => {
+        const t = frames > 1 ? f / (frames - 1) : 1
+        let p
+        if (t < 0.55) p = minJerk(t / 0.55) * (1 + over)
+        else { const u = (t - 0.55) / 0.45; p = 1 + over * Math.exp(-4.2 * u) * Math.cos(6.4 * u) }
+        const [mx, my] = micro(tag, f, GAIN.drag)
+        return [sx + (tx - sx) * p + mx, sy + (ty - sy) * p + my, true]
+      })
+      cx = tx; cy = ty
+      return api
+    },
+
+    /** Hold what you are dragging still, the way you do when you are reading it. */
+    hold(secs) {
+      const x = cx, y = cy, tag = `${name}:${++nth}`
+      push(F(secs), (f) => { const [mx, my] = micro(tag, f, GAIN.drag); return [x + mx, y + my, true] })
+      return api
+    },
+
+    release(secs = 0.14) {
+      const x = cx, y = cy, tag = `${name}:${++nth}`
+      push(F(secs), (f) => { const [mx, my] = micro(tag, f, GAIN.idle); return [x + mx, y + my, false] })
+      return api
+    },
+
+    /** Where the pointer is on frame f, and whether the button is down. */
+    sample(f) {
+      let g = segs[segs.length - 1], local = g ? g.frames - 1 : 0
+      for (const seg of segs) if (f < seg.start + seg.frames) { g = seg; local = f - seg.start; break }
+      return g ? g.fn(Math.max(0, local)) : [x0, y0, false]
+    },
+  }
+  return api
+}
 
 const SCENES = [
   /* ---- 1. the portfolio, comforted ---------------------------------------------- */
   {
-    name: 'portfolio', secs: 7,
-    enter() { hideSrPanel(); showScreen('pf'); paintPortfolio({}); cursor(null) },
-    at(k) {
-      if (k < 0.4) caption('Six holdings. Nothing on this screen is red.')
+    name: 'portfolio', min: 6.5,
+    screen() { hideSrPanel(); showScreen('pf'); paintPortfolio({}) },
+    build(h) {
+      this.screen()
+      return h.wait(0.6).toXY(660, 300, 260).wait(1.5).mark('read').toXY(600, 430, 200).wait(1.6)
+    },
+    at(f) {
+      paintPortfolio({})
+      if (f < this.h.at('read')) caption('Six holdings. Nothing on this screen is red.')
       else caption(`Portfolio value <span class="up">${fmtMoney(TOTAL_COST + SHOWN_GAIN)}</span>. Up <span class="up">${fmtMoney(SHOWN_GAIN)}</span> since I bought.`)
     },
   },
 
   /* ---- 2. one button says otherwise --------------------------------------------- */
   {
-    name: 'reveal', secs: 8,
-    enter() { hideSrPanel(); showScreen('pf') },
-    at(k) {
-      const truth = k >= 0.12
-      const revealAll = k >= 0.66
-      const rowT = springK(seg(k, 0.66, 0.90), 0.9)
-      paintPortfolio({ truth, revealAll, rowT, pressed: k >= 0.09 && k < 0.13 ? 'total' : k >= 0.63 && k < 0.67 ? 'reveal' : null })
-
-      const [bx, by] = centre('#total-btn'), [rx, ry] = centre('#revealall')
-      if (k < 0.5) cursor(lerp(bx + 150, bx, easeOut(seg(k, 0, 0.09))), lerp(by + 70, by, easeOut(seg(k, 0, 0.09))), k >= 0.09 && k < 0.13)
-      else cursor(lerp(bx, rx, easeInOut(seg(k, 0.5, 0.63))), lerp(by, ry, easeInOut(seg(k, 0.5, 0.63))), k >= 0.63 && k < 0.67)
-
-      if (k < 0.12) caption('One button says otherwise.')
-      else if (k < 0.42) caption(`Down <span class="down">${fmtMoney(-REAL_GAIN)}</span>.`)
-      else if (k < 0.66) caption('Same number, drawn upside down.')
+    name: 'reveal', min: 8,
+    screen() { hideSrPanel(); showScreen('pf') },
+    build(h) {
+      this.screen(); paintPortfolio({})
+      h.to('#total-btn').click().mark('truth').wait(2.2).mark('read')
+      h.to('#revealall').click().mark('all').wait(2.4)
+      return h
+    },
+    at(f) {
+      const truth = f >= this.h.at('truth')
+      const revealAll = f >= this.h.at('all')
+      const rowT = springK(clamp01((f - this.h.at('all')) / (0.9 * FPS)), 0.9)
+      paintPortfolio({ truth, revealAll, rowT })
+      if (!truth) caption('One button says otherwise.')
+      else if (f < this.h.at('read')) caption(`Down <span class="down">${fmtMoney(-REAL_GAIN)}</span>.`)
+      else if (!revealAll) caption('Same number, drawn upside down.')
       else caption('Reveal all. Three of the six were red.')
     },
   },
 
-  /* ---- 3. one position, opened -------------------------------------------------- */
+  /* ---- 3. a row is a control, so the video has to press one --------------------- */
   {
-    name: 'open', secs: 5,
-    enter() { hideSrPanel(); openDetail('PLNGE'); paintDetail(0); cursor(null) },
-    at(k) {
-      paintDetail(0)
-      if (k < 0.46) caption(`Plunge Capital. Up <span class="up">${fmtPct(PL.shown.pct)}</span> today.`)
-      else caption(`It fell <span class="down">${Math.abs(PL.real.pct).toFixed(2)}%</span>.`)
+    name: 'open', min: 7,
+    screen() { hideSrPanel(); showScreen('pf'); paintPortfolio({ revealAll: true, rowT: 1 }) },
+    build(h) {
+      this.screen()
+      h.to('#revealall').click().mark('hide').wait(0.7)
+      paintPortfolio({})
+      h.to('#row-PLNGE').click(0.22, 0.09).mark('opened')
+      openDetail('PLNGE'); paintDetail(0)
+      return h.wait(2.6)
+    },
+    at(f) {
+      const H = this.h, opened = H.at('opened')
+      if (f < opened) {
+        showScreen('pf')
+        /* Reveal-all latches, so it stays on until it is switched off. The rows settle
+           back on the same spring they came out on rather than snapping. */
+        paintPortfolio({ revealAll: f < H.at('hide'), rowsOn: true,
+                         rowT: 1 - springK(clamp01((f - H.at('hide')) / (0.9 * FPS)), 0.9) })
+        caption(f < H.at('hide') ? 'Back to comfort.' : 'Tap a holding to open it.')
+        return
+      }
+      if (DETAIL.ticker !== 'PLNGE' || $('#dt').style.display === 'none') openDetail('PLNGE')
+      paintDetail(caughtItself(f - opened))
+      if (f < opened + 0.9 * FPS) caption(`It fell <span class="down">${Math.abs(PL.real.pct).toFixed(2)}%</span>.`)
+      else caption(`Plunge Capital. The chart says up <span class="up">${fmtPct(PL.shown.pct)}</span>.`)
     },
   },
 
   /* ---- 4. park the mirror half way. The whole idea in one frame. ----------------- */
   {
-    name: 'midflip', secs: 10,
-    enter() { hideSrPanel(); openDetail('PLNGE') },
-    at(k) {
-      const t = lerp(0, 0.5, easeInOut(seg(k, 0.12, 0.44)))
-      paintDetail(t)
+    name: 'midflip', min: 10,
+    screen() { hideSrPanel(); openDetail('PLNGE'); this.t = 0 },
+    build(h) {
+      this.screen(); paintDetail(0)
       const tr = rectIn($('#mr-track')), th = tr.y + tr.h / 2
-      const x = tr.x + tr.w * t
-      if (k < 0.09) cursor(lerp(tr.x + 170, tr.x, easeOut(seg(k, 0, 0.08))), lerp(th + 90, th, easeOut(seg(k, 0, 0.08))), false)
-      else cursor(x, th, k < 0.52)
-      if (k < 0.13) caption('Drag the mirror track.')
-      else if (k < 0.44) caption('Park it half way.')
-      else if (k < 0.7) caption('The line goes flat. Both versions fade up either side of the axis.')
+      h.toXY(tr.x + 3, th, 26).mark('onthumb').grab().mark('grabbed')
+      h.dragXY(tr.x + tr.w * 0.5, th - 1.5, 26).mark('mid').hold(3.4)
+      return h
+    },
+    at(f, px, py, down) {
+      /* The scrub only follows the pointer while the pointer is holding it. Crossing
+         the track on the way somewhere else does not move it, and letting go leaves it
+         where it was rather than tracking the hand away. */
+      if (down) this.t = trackValue(px)
+      paintDetail(this.t)
+      if (f < this.h.at('grabbed')) caption('Drag the mirror track.')
+      else if (f < this.h.at('mid')) caption('Park it half way.')
+      else if (f < this.h.at('mid') + 1.7 * FPS) caption('The line goes flat. Both versions fade up either side of the axis.')
       else caption('Break-even meets the fold. The position reads <span class="up">+0.00</span>.')
     },
   },
 
   /* ---- 5. all the way across ---------------------------------------------------- */
   {
-    name: 'reality', secs: 6,
-    enter() { hideSrPanel(); openDetail('PLNGE') },
-    at(k) {
-      const t = lerp(0.5, 1, easeInOut(seg(k, 0.04, 0.36)))
-      paintDetail(t)
-      const tr = rectIn($('#mr-track'))
-      cursor(tr.x + tr.w * t, tr.y + tr.h / 2, k < 0.44)
-      if (k < 0.36) caption('All the way across.')
+    name: 'reality', min: 6,
+    screen() { hideSrPanel(); openDetail('PLNGE'); this.t = 0.5 },
+    build(h) {
+      this.screen(); paintDetail(0.5)
+      const tr = rectIn($('#mr-track')), th = tr.y + tr.h / 2
+      h.dragXY(tr.x + tr.w - 2, th + 2, 26).mark('there').hold(1.5).release().wait(1.9)
+      return h
+    },
+    at(f, px, py, down) {
+      if (down) this.t = trackValue(px)
+      paintDetail(this.t)
+      if (f < this.h.at('there')) caption('All the way across.')
       else caption(`Down <span class="down">${fmtMoney(Math.abs(PL_POS.gain))}</span> since I bought it. Same shape, opposite direction.`)
     },
   },
 
-  /* ---- 6. the one it will not mirror -------------------------------------------- */
+  /* ---- 6. back out, and into the one it will not mirror ------------------------- */
   {
-    name: 'lifted', secs: 11,
-    enter() { hideSrPanel(); openDetail('HODL'); paintDetail(0); cursor(null) },
-    at(k) {
-      paintDetail(0)
-      if (k < 0.22) caption('Hodl Brothers. The day is green. The position is not.')
-      else if (k < 0.46) caption("A mirror would spend the day's gain to rescue the year.")
-      else if (k < 0.58) caption('So it will not use one.')
-      else if (k < 0.74) caption('The badge reads <span class="up">Lifted</span>. Not <span class="up">Mirrored</span>.')
-      else if (k < 0.88) caption(`Lifted <span class="up">${fmtMoney(HODL_LIFT)}</span> to clear what I paid.`)
+    name: 'lifted', min: 13,
+    screen() { hideSrPanel(); openDetail('PLNGE'); paintDetail(1) },
+    build(h) {
+      this.screen()
+      h.to('.back').click().mark('back')
+      showScreen('pf'); paintPortfolio({})
+      h.wait(0.7).to('#row-HODL').click(0.22, 0.09).mark('hodl')
+      openDetail('HODL'); paintDetail(0)
+      h.wait(1.5).to('#badge').mark('onbadge').wait(2.6).mark('offbadge')
+      h.toXY(1258, 545, 260).wait(2.4)
+      return h
+    },
+    at(f, px, py) {
+      const H = this.h
+      if (f < H.at('back')) { openDetail('PLNGE'); paintDetail(1); caption('Back out.'); return }
+      if (f < H.at('hodl')) { showScreen('pf'); paintPortfolio({}); caption('Hodl Brothers. The day is green.'); return }
+      if (DETAIL.ticker !== 'HODL' || $('#dt').style.display === 'none') openDetail('HODL')
+      paintDetail(caughtItself(f - H.at('hodl')))
+      tooltip(f >= H.at('onbadge') + 0.9 * FPS && f < H.at('offbadge'), px, py, LIFTED_DETAIL)
+      if (f < H.at('onbadge')) caption('The position is not.')
+      else if (f < H.at('onbadge') + 1.6 * FPS) caption("A mirror would spend the day's gain to rescue the year.")
+      else if (f < H.at('offbadge')) caption(`The badge reads <span class="up">Lifted</span>. Not <span class="up">Mirrored</span>.`)
+      else if (f < H.at('offbadge') + 1.8 * FPS) caption(`Lifted <span class="up">${fmtMoney(HODL_LIFT)}</span> to clear what I paid.`)
       else caption('The shape is untouched. Only the numbers are wrong.')
     },
   },
 
   /* ---- 7. the joke is visual only ----------------------------------------------- */
   {
-    name: 'screenreader', secs: 11,
-    enter() {
-      hideSrPanel(); openDetail('PLNGE'); paintDetail(0)
-      cursor(null); $('#srtext').innerHTML = srTextFor('PLNGE')
+    name: 'screenreader', min: 11,
+    screen() { openDetail('HODL'); paintDetail(0); $('#srtext').innerHTML = srTextFor('HODL') },
+    build(h) {
+      this.screen()
+      return h.to('#chartbox', 0, 40).wait(9.6)
     },
-    at(k) {
+    at(f) {
+      if (DETAIL.ticker !== 'HODL' || $('#dt').style.display === 'none') { openDetail('HODL'); $('#srtext').innerHTML = srTextFor('HODL') }
       paintDetail(0)
       const panel = $('#srpanel')
-      if (k >= 0.16) {
+      const t = clamp01((f - 0.9 * FPS) / (0.42 * FPS))
+      if (f >= 0.9 * FPS) {
         panel.classList.add('show')
-        panel.style.transform = `translateY(${(1 - easeOut(seg(k, 0.16, 0.32))) * 120}px)`
-        panel.style.opacity = easeOut(seg(k, 0.16, 0.30))
+        panel.style.transform = `translateY(${((1 - easeOut(t)) * 120).toFixed(1)}px)`
+        panel.style.opacity = easeOut(t).toFixed(3)
       } else panel.classList.remove('show')
-      if (k < 0.16) caption(`The chart says up <span class="up">${fmtPct(PL.shown.pct)}</span>.`)
-      else if (k < 0.62) caption('This is what a screen reader is handed on the same screen.')
+      if (f < 0.9 * FPS) caption(`The chart says up <span class="up">${fmtPct(HODL_SHOWN.pct)}</span>, and the position up <span class="up">${fmtMoney(-HODL_POS.gain)}</span>.`)
+      else if (f < 5.6 * FPS) caption('This is what a screen reader is handed on the same screen.')
       else caption('The joke is visual only. The accessibility layer never lies.')
     },
   },
@@ -951,26 +1355,71 @@ const SCENES = [
 /* ===========================================================================
    7. The frame pump. The page owns the timeline; the recorder just pulls.
    =========================================================================== */
-const PLAN = (() => {
+
+/**
+ * One hand for the whole video.
+ *
+ * The hands are built in order, before anything is recorded, and each one starts
+ * where the last one finished — so a scene boundary is a cut in the captions and
+ * nothing else. The pointer is never hidden and never re-enters from a fixed
+ * offset, because a real session has exactly one pointer and it is always on the
+ * screen somewhere. A scene's length is then whatever its actions take, floored at
+ * the `min` the script asks for.
+ */
+function buildHands() {
+  let x = 1290, y = 690
+  for (const sc of SCENES) {
+    const h = hand(sc.name, x, y)
+    sc.h = sc.build(h)
+    const floor = Math.round(sc.min * FPS)
+    if (sc.h.frames < floor) sc.h.wait((floor - sc.h.frames) / FPS)
+    sc.frames = sc.h.frames
+    ;[x, y] = sc.h.sample(sc.frames - 1)
+  }
+}
+
+/** The 420ms the app sits with the truth before it thinks better of it. Chart.tsx. */
+const caughtItself = (f) => 1 - spring(Math.max(0, f - 0.42 * FPS) / FPS, 90, 15)
+
+/**
+ * The scrub reads off the pointer, so the chart wobbles because the hand does.
+ *
+ * Quantised to the app's own step: the control is <input type="range" min=0 max=100
+ * step=1>, so it moves in whole percent and a hand's sub-pixel tremor cannot shift it.
+ * That is also why the mid-flip reads exactly +0.00 rather than +0.30 — the app is not
+ * capable of parking between two steps, and neither is this.
+ */
+function trackValue(px) {
+  const tr = rectIn($('#mr-track'))
+  return Math.round(clamp01((px - tr.x) / tr.w) * 100) / 100
+}
+
+let PLAN = [], TOTAL_FRAMES = 0
+function plan() {
   let start = 0
-  return SCENES.map((s) => { const n = Math.round(s.secs * FPS), e = { scene: s, start, frames: n }; start += n; return e })
-})()
-const TOTAL_FRAMES = PLAN.reduce((s, p) => s + p.frames, 0)
+  PLAN = SCENES.map((s) => { const e = { scene: s, start, frames: s.frames }; start += s.frames; return e })
+  TOTAL_FRAMES = start
+}
 
 let current = null
 function renderFrame(i) {
+  NOW_FRAME = i
   const p = PLAN.find((x) => i >= x.start && i < x.start + x.frames) ?? PLAN[PLAN.length - 1]
-  if (p !== current) { current = p; p.scene.enter() }
+  if (p !== current) { current = p; p.scene.screen() }
   const local = Math.min(i - p.start, p.frames - 1)
-  p.scene.at(p.frames > 1 ? local / (p.frames - 1) : 0, local)
+  const [px, py, down] = p.scene.h.sample(local)
+  p.scene.at(local, px, py, down)
+  applyEntries()
+  cursor(px, py, down)
 }
+
 
 window.__demo = {
   fps: FPS,
   width: 1920,
   height: 1080,
-  totalFrames: TOTAL_FRAMES,
-  seconds: TOTAL_FRAMES / FPS,
+  get totalFrames() { return TOTAL_FRAMES },
+  get seconds() { return TOTAL_FRAMES / FPS },
   frame: -1,
   ready: false,
   /** True only once the final frame is on screen. The recorder stops on this. */
@@ -990,6 +1439,10 @@ window.__demo = {
 /* The frame is set once, from the laid-out page, and never touched again. */
 FRAME = fitFrame()
 applyCam(FRAME)
+
+/* Hands first: a scene cannot know how long it is until its actions have been laid out. */
+buildHands()
+plan()
 
 /* Frame 0 is the thumbnail, so it is drawn before anything reports ready — and ready
    waits on the fonts, or the first frames go out in a fallback face. */

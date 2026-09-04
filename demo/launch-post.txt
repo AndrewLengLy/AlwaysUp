@@ -46,7 +46,7 @@ That is the whole idea in one frame.
 
 React, TypeScript, hand-rolled SVG. No chart library: the flip is a coordinate transform, and a library would only get in the way of it. 77 tests, mostly about the maths.
 
-The video is a reconstruction of the UI rather than a screen recording, and the market data in it is simulated. It says so on screen for all 58 seconds.
+The video is a reconstruction of the UI rather than a screen recording, and the market data in it is simulated. It says so on screen for all 61 seconds.
 
 Not investment advice. Not a basis for any decision.
 
@@ -88,7 +88,7 @@ My favourite frame is the one where you park the mirror half way. The line goes 
 
 React, TypeScript, hand-rolled SVG. No chart library — the flip is a coordinate transform and a library would only get in the way. 77 tests, mostly about the maths rather than the joke.
 
-One thing to be straight about: the video is a reconstruction of the UI, not a screen recording, and its market data is simulated. That is on screen for all 58 seconds.
+One thing to be straight about: the video is a reconstruction of the UI, not a screen recording, and its market data is simulated. That is on screen for all 61 seconds.
 
 Not investment advice, and not a basis for any decision.
 
@@ -128,7 +128,7 @@ Screen readers get the real numbers. The animated figures are aria-hidden with a
 
 React, TypeScript, hand-rolled SVG, Framer Motion. No chart library. 77 tests.
 
-The video is a reconstruction of the UI rather than a screen recording, and the market data in it is the project's own simulator on a frozen clock. It says so on screen for all 58 seconds.
+The video is a reconstruction of the UI rather than a screen recording, and the market data in it is the project's own simulator on a frozen clock. It says so on screen for all 61 seconds.
 
 Not investment advice. Not a basis for any decision.
 
@@ -176,8 +176,8 @@ VIDEO SPECS (as produced by `npm run demo`)
 
 File          demo/alwaysup-demo.mp4
 Resolution    1920 x 1080  (16:9)
-Duration      58.0 s       (LinkedIn accepts 3 s to 15 min)
-Frame rate    25 fps constant, 1450 frames
+Duration      61.5 s       (LinkedIn accepts 3 s to 15 min)
+Frame rate    25 fps constant, 1538 frames
 Video         H.264, High profile, level 4.0, CRF 20, yuv420p, bt709
 Audio         none — the file has a single stream, and the captions are burned
               into the frame because feeds autoplay muted
