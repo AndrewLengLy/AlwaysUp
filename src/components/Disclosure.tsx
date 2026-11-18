@@ -55,6 +55,9 @@ export function Disclosure() {
             <span className="text-ink">Tap any chart to flip it back</span>, drag the mirror track to
             stop it half way, or press and hold to peek. Screen readers always get the real numbers.
           </p>
+          <p className="border-l-2 border-down pl-3 text-ink">
+            It’s built for a laugh. Please don’t use it to decide what to buy or sell.
+          </p>
         </div>
 
         <button

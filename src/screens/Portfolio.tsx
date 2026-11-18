@@ -215,9 +215,12 @@ export function Portfolio({
           </Card>
 
           <p className="mt-3 text-[11.5px] leading-relaxed text-faint">
-            {source.real
-              ? `Real companies, real prices from ${source.label}.`
-              : 'Simulated prices for fictional companies.'}
+            {/* Claims real prices only when every holding on screen has them. */}
+            {!source.real
+              ? 'Simulated prices for fictional companies.'
+              : substituted.length > 0
+                ? `Real companies. ${source.label} could not be reached, so the prices marked Simulated are invented.`
+                : `Real companies, real prices from ${source.label}.`}
           </p>
         </section>
 

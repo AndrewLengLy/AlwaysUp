@@ -14,6 +14,10 @@ function Header({ revealing, distortion }: { revealing: boolean; distortion: Dis
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-ground/90 backdrop-blur-md">
+      {/* On every screen, above everything: what this is, before anyone reads a number. */}
+      <p className="border-b border-line bg-up-deep px-5 py-1.5 text-center font-pixel text-[11px] tracking-[0.04em] text-ground uppercase dark:bg-up">
+        A joke app. The charts are flipped on purpose. Don’t invest with it.
+      </p>
       <nav className="mx-auto flex w-full max-w-5xl items-center gap-3 px-5 py-3 sm:px-8">
         <button
           onClick={() => go({ name: 'portfolio' })}
@@ -110,8 +114,9 @@ function Shell() {
               then stay deadpan everywhere else, which is both funnier and clearer about
               what it actually does to the numbers. */}
           <p className="text-[11.5px] leading-relaxed text-faint">
-            AlwaysUp draws losing positions as gains on purpose. Any figure on screen may be the exact
-            opposite of what happened. Not investment advice, and not a basis for any decision.
+            AlwaysUp is a parody. It draws losing positions as gains on purpose, so any figure on screen
+            may be the exact opposite of what happened. It is not investment advice and not a basis for any
+            decision. Check a real brokerage or a licensed advisor before you buy or sell anything.
           </p>
         </div>
       </footer>
