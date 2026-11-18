@@ -19,6 +19,7 @@ import { Chart } from '../components/Chart'
 import { Confetti } from '../components/Confetti'
 import { Card, SectionLabel, SimulatedChip, Skeleton, Stat } from '../components/ui'
 import { source } from '../lib/data'
+import { usePalette } from '../lib/palette'
 
 const REASSURANCE = [
   'Nothing but altitude today.',
@@ -28,8 +29,6 @@ const REASSURANCE = [
   'Momentum remains intact.',
 ]
 
-const UP = '#4ade9b'
-const DOWN = '#ff8085'
 
 /** Hoisted so the memo below has a stable identity while the quote is still loading. */
 const NOTHING: Comfort = { kind: 'none' }
@@ -41,6 +40,7 @@ export function Detail({
   ticker: string
   onReveal: (revealing: boolean, distortion: Distortion) => void
 }) {
+  const { up: UP, down: DOWN } = usePalette()
   const { mode, go, holdings } = useStore()
   const [range, setRange] = useState<Range>('1D')
   const { quote, loading } = useQuote(ticker, range)
@@ -105,7 +105,7 @@ export function Detail({
 
       <button
         onClick={() => go({ name: 'portfolio' })}
-        className="mb-6 -ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 text-[13px] text-pbx-400 transition-colors hover:text-pbx-white"
+        className="mb-6 -ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 text-[13px] text-muted transition-colors hover:text-ink"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M8.5 3 4.5 7l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -116,13 +116,13 @@ export function Detail({
       <div className="grid gap-8 lg:grid-cols-[1fr_260px] lg:items-start">
         <div className="min-w-0">
           <div className="mb-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-2">
-            <h1 className="text-[30px] leading-none font-semibold tracking-tight text-pbx-white">{quote.ticker}</h1>
-            <span className="truncate text-[14px] text-pbx-400">{quote.name}</span>
+            <h1 className="text-[30px] leading-none font-semibold tracking-tight text-ink">{quote.ticker}</h1>
+            <span className="truncate text-[14px] text-muted">{quote.name}</span>
             {quote.substituted && <SimulatedChip />}
           </div>
 
           <motion.p
-            className="tnum font-mono text-[44px] leading-none font-semibold tracking-tight text-pbx-white"
+            className="tnum font-mono text-[44px] leading-none font-semibold tracking-tight text-ink"
             aria-hidden="true"
           >
             {price}
@@ -133,7 +133,7 @@ export function Detail({
               <motion.span>{abs}</motion.span>
               <motion.span className="opacity-75">{pct}</motion.span>
             </motion.span>
-            <span className="text-[13px] text-pbx-400">{RANGE_LABEL[range]}</span>
+            <span className="text-[13px] text-muted">{RANGE_LABEL[range]}</span>
           </div>
 
           {/* The figures above animate, which screen readers should not have to follow. */}
@@ -163,8 +163,8 @@ export function Detail({
                 aria-pressed={r === range}
                 className={`min-h-11 flex-1 text-[12.5px] font-medium transition-colors ${
                   r === range
-                    ? 'border border-pbx-600 bg-pbx-800 text-pbx-white'
-                    : 'border border-transparent text-pbx-400 hover:border-pbx-800 hover:text-pbx-white'
+                    ? 'border border-rule bg-line text-ink'
+                    : 'border border-transparent text-muted hover:border-line hover:text-ink'
                 }`}
               >
                 {r}
@@ -175,7 +175,7 @@ export function Detail({
           {/* Names the exact operation performed on the line above it. The badge names the
               mode; this names what was done to this chart, in the units it was done in. */}
           {comforted && (
-            <p className="mt-3 text-[12px] leading-relaxed text-pbx-500">{describeComfort(comfort)}</p>
+            <p className="mt-3 text-[12px] leading-relaxed text-faint">{describeComfort(comfort)}</p>
           )}
         </div>
 
@@ -186,7 +186,7 @@ export function Detail({
               {basis === null ? (
                 <div className="col-span-2 lg:col-span-1">
                   <Stat label="Shares" value={String(shares)} />
-                  <p className="mt-3 text-[12px] leading-relaxed text-pbx-500">
+                  <p className="mt-3 text-[12px] leading-relaxed text-faint">
                     No cost basis set, so there is nothing to measure this against. Add what you paid in
                     Settings and the chart will mirror about that price instead of the open.
                   </p>
@@ -197,7 +197,7 @@ export function Detail({
                   <Stat label="Avg cost" value={fmtPrice(basis)} />
                   <MotionStat label="Market value" value={posValue} />
                   <div className="flex flex-col gap-1.5" aria-hidden="true">
-                    <span className="text-[10.5px] tracking-[0.14em] text-pbx-400 uppercase">Total return</span>
+                    <span className="text-[10.5px] font-pixel tracking-[0.06em] text-muted uppercase">Total return</span>
                     <motion.span
                       className="tnum inline-flex items-baseline gap-2 font-mono text-[16px]"
                       style={{ color: posTone }}
@@ -210,7 +210,7 @@ export function Detail({
               )}
             </Card>
             {basis !== null && (
-              <p className="mt-2.5 text-[11.5px] leading-relaxed text-pbx-500">
+              <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
                 Read off the chart as drawn, so it flips with it. Break-even is the dashed line at{' '}
                 {fmtPrice(basis)}.
               </p>
@@ -225,18 +225,18 @@ export function Detail({
               <Stat label="Low" value={fmtPrice(min)} />
               <Stat label="Volume" value={fmtVolume(quote.volume)} />
             </Card>
-            <p className="mt-2.5 text-[11.5px] leading-relaxed text-pbx-500">
+            <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
               High and low come from the chart as drawn, so in comfort mode they are swapped.
             </p>
           </div>
 
           {!revealed && comforted && (
-            <p className="border-l border-up-600 pl-3 text-[13px] text-pbx-200 italic">{reassurance}</p>
+            <p className="border-l border-up-deep pl-3 text-[13px] text-ink-soft italic">{reassurance}</p>
           )}
         </aside>
       </div>
 
-      <p className="mt-10 max-w-3xl text-[12px] leading-relaxed text-pbx-500">
+      <p className="mt-10 max-w-3xl text-[12px] leading-relaxed text-faint">
         {quote.substituted
           ? `Real prices for ${quote.ticker} could not be fetched, so this price history is simulated. It is an invented series under a real ticker, and it is not what happened.`
           : source.real
@@ -252,8 +252,8 @@ export function Detail({
 function MotionStat({ label, value }: { label: string; value: MotionValue<string> }) {
   return (
     <div className="flex flex-col gap-1.5" aria-hidden="true">
-      <span className="text-[10.5px] tracking-[0.14em] text-pbx-400 uppercase">{label}</span>
-      <motion.span className="tnum font-mono text-[16px] text-pbx-white">{value}</motion.span>
+      <span className="text-[10.5px] font-pixel tracking-[0.06em] text-muted uppercase">{label}</span>
+      <motion.span className="tnum font-mono text-[16px] text-ink">{value}</motion.span>
     </div>
   )
 }

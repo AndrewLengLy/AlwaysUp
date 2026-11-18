@@ -47,7 +47,7 @@ function useSearch(query: string) {
   return result?.q === q ? result.hits : []
 }
 
-const NUMERIC = 'tnum w-[86px] shrink-0 border border-pbx-700 bg-pbx-panel min-h-11 px-2.5 py-2.5 text-right font-mono text-[13.5px] text-pbx-white placeholder:font-sans placeholder:text-[12.5px] placeholder:text-pbx-500 focus:border-pbx-600 focus:outline-none'
+const NUMERIC = 'tnum w-[86px] shrink-0 border border-line-strong bg-panel min-h-11 px-2.5 py-2.5 text-right font-mono text-[13.5px] text-ink placeholder:font-sans placeholder:text-[12.5px] placeholder:text-faint focus:border-rule focus:outline-none'
 
 export function Settings() {
   const { mode, setMode, holdings, addHolding, updateHolding, removeHolding, reset } = useStore()
@@ -80,10 +80,12 @@ export function Settings() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 pb-24 sm:px-8">
-      <h1 className="mb-8 text-[26px] font-semibold tracking-tight text-pbx-white">Settings</h1>
+      <h1 className="mb-8 text-[34px] leading-none font-semibold text-ink sm:text-[44px]">Settings</h1>
 
-      <h2 className="mb-3 text-[11px] font-semibold tracking-[0.16em] text-pbx-400 uppercase">
+      <h2 className="mb-4 border-b border-line pb-2 text-[22px] leading-tight font-semibold text-ink">
+        <span className="bracket">[</span>
         Comfort level
+        <span className="bracket">]</span>
       </h2>
       <div className="mb-8 space-y-2">
         {COMFORT_MODES.map((m) => (
@@ -92,30 +94,32 @@ export function Settings() {
             onClick={() => setMode(m.id)}
             className={`flex w-full items-start gap-3.5 border p-4 text-left transition ${
               mode === m.id
-                ? 'border-up-600 bg-up-600/10'
-                : 'border-pbx-700 bg-pbx-panel hover:border-pbx-600'
+                ? 'corners border-line-strong bg-panel'
+                : 'border-line bg-panel hover:border-rule'
             }`}
           >
             <span
               className={`mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border ${
-                mode === m.id ? 'border-up-500 bg-up-500' : 'border-pbx-600'
+                mode === m.id ? 'border-up bg-up' : 'border-rule'
               }`}
             >
-              {mode === m.id && <span className="h-1.5 w-1.5 rounded-full bg-pbx-black" />}
+              {mode === m.id && <span className="h-1.5 w-1.5 rounded-full bg-ground" />}
             </span>
             <span className="min-w-0">
-              <span className="block text-[15px] font-medium text-pbx-white">{m.label}</span>
-              <span className="block text-[13px] leading-relaxed text-pbx-400">{m.blurb}</span>
+              <span className="block text-[15px] font-medium text-ink">{m.label}</span>
+              <span className="block text-[13px] leading-relaxed text-muted">{m.blurb}</span>
             </span>
           </button>
         ))}
       </div>
 
-      <h2 className="mb-3 text-[11px] font-semibold tracking-[0.16em] text-pbx-400 uppercase">
+      <h2 className="mb-4 border-b border-line pb-2 text-[22px] leading-tight font-semibold text-ink">
+        <span className="bracket">[</span>
         Holdings
+        <span className="bracket">]</span>
       </h2>
-      <Card className="mb-3 divide-y divide-pbx-800 overflow-hidden">
-        <div className="flex items-center gap-3 bg-pbx-800/40 px-4 py-2 text-[10.5px] tracking-[0.14em] text-pbx-500 uppercase">
+      <Card className="mb-3 divide-y divide-line overflow-hidden">
+        <div className="flex items-center gap-3 bg-line/40 px-4 py-2 text-[10.5px] font-pixel tracking-[0.06em] text-faint uppercase">
           <span className="flex-1">Symbol</span>
           <span className="w-[86px] text-right">Shares</span>
           <span className="w-[86px] text-right">Avg cost</span>
@@ -131,13 +135,13 @@ export function Settings() {
           />
         ))}
         {!holdings.length && (
-          <p className="px-4 py-6 text-center text-[13px] text-pbx-400">
+          <p className="px-4 py-6 text-center text-[13px] text-muted">
             An empty portfolio has never lost a cent.
           </p>
         )}
       </Card>
 
-      <p className="mb-4 text-[12px] leading-relaxed text-pbx-500">
+      <p className="mb-4 text-[12px] leading-relaxed text-faint">
         Average cost is what the comfort transform anchors on: underwater, the chart is mirrored about
         the price you paid rather than about the open, so the loss comes back as a gain of exactly the
         same size. Leave it blank and the app can only comfort you about today.
@@ -158,7 +162,7 @@ export function Settings() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={source.real ? 'Ticker or company name' : 'TICKER'}
             aria-label="Ticker or company name"
-            className="min-w-[140px] flex-1 border border-pbx-700 bg-pbx-panel min-h-11 px-3 py-2.5 text-[14px] text-pbx-white placeholder:text-pbx-400 focus:border-pbx-600 focus:outline-none"
+            className="min-w-[140px] flex-1 border border-line-strong bg-panel min-h-11 px-3 py-2.5 text-[14px] text-ink placeholder:text-muted focus:border-rule focus:outline-none"
           />
           <input
             value={shares}
@@ -178,14 +182,14 @@ export function Settings() {
           />
           <button
             type="submit"
-            className="min-h-11 shrink-0 bg-pbx-white px-4 py-2.5 text-[14px] font-medium text-pbx-black transition-colors hover:bg-pbx-200"
+            className="min-h-11 shrink-0 bg-ink px-4 py-2.5 text-[14px] font-medium text-ground transition-colors hover:bg-ink-soft"
           >
             Add
           </button>
         </div>
 
         {hits.length > 0 && (
-          <Card className="mt-2 divide-y divide-pbx-800 overflow-hidden">
+          <Card className="mt-2 divide-y divide-line overflow-hidden">
             {hits.map((hit) => (
               <button
                 key={hit.ticker}
@@ -194,26 +198,28 @@ export function Settings() {
                   rememberName(hit.ticker, hit.name)
                   add(hit.ticker)
                 }}
-                className="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-pbx-800"
+                className="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-line"
               >
-                <span className="w-16 shrink-0 text-[13.5px] font-semibold text-pbx-white">{hit.ticker}</span>
-                <span className="flex-1 truncate text-[13px] text-pbx-400">{hit.name}</span>
+                <span className="w-16 shrink-0 text-[13.5px] font-semibold text-ink">{hit.ticker}</span>
+                <span className="flex-1 truncate text-[13px] text-muted">{hit.name}</span>
               </button>
             ))}
           </Card>
         )}
       </form>
 
-      <h2 className="mb-3 text-[11px] font-semibold tracking-[0.16em] text-pbx-400 uppercase">
+      <h2 className="mb-4 border-b border-line pb-2 text-[22px] leading-tight font-semibold text-ink">
+        <span className="bracket">[</span>
         Data
+        <span className="bracket">]</span>
       </h2>
       <Card className="mb-8 p-4">
-        <p className="text-[13.5px] leading-relaxed text-pbx-200">
+        <p className="text-[13.5px] leading-relaxed text-ink-soft">
           {source.real
             ? `Real prices for real companies, from ${source.label}.`
             : 'Running on simulated prices for fictional companies. Unset VITE_DATA_SOURCE to pull real prices instead.'}
         </p>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-pbx-400">
+        <p className="mt-3 text-[12.5px] leading-relaxed text-muted">
           {source.real
             ? 'When a symbol cannot be fetched, its prices are simulated and labelled as such wherever they appear.'
             : 'Any ticker you type gets a stable invented price history, and the demo portfolio buys it a year ago at the price the simulator says it traded at then.'}
@@ -222,7 +228,7 @@ export function Settings() {
 
       <button
         onClick={reset}
-        className="min-h-12 w-full border border-pbx-700 py-3 text-[14px] text-pbx-200 transition hover:border-down-500/60 hover:text-down-400"
+        className="min-h-12 w-full border border-line-strong py-3 text-[14px] text-ink-soft transition hover:border-down/60 hover:text-down"
       >
         Reset everything
       </button>
@@ -268,10 +274,10 @@ function HoldingRow({
   return (
     <div className="flex items-center gap-3 px-4 py-2.5">
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-semibold text-pbx-white">{holding.ticker}</span>
+        <span className="block text-[14px] font-semibold text-ink">{holding.ticker}</span>
         {/* Two number fields and a Remove button leave a phone no room for a company
             name, and three truncated characters of one are worse than none. */}
-        {name && <span className="hidden truncate text-[12px] text-pbx-400 sm:block">{name}</span>}
+        {name && <span className="hidden truncate text-[12px] text-muted sm:block">{name}</span>}
       </span>
       <input
         value={shares}
@@ -291,7 +297,7 @@ function HoldingRow({
       />
       <button
         onClick={onRemove}
-        className="min-h-11 w-[64px] shrink-0 text-[12.5px] text-pbx-400 transition-colors hover:bg-pbx-800 hover:text-down-400"
+        className="min-h-11 w-[64px] shrink-0 text-[12.5px] text-muted transition-colors hover:bg-line hover:text-down"
       >
         Remove
       </button>

@@ -233,10 +233,12 @@ npm run build
 Vite, React, TypeScript, Tailwind, Framer Motion. The chart is hand-rolled inline SVG. The
 flip is a coordinate transform, and a chart library would only get in the way of it.
 
-Visually the app follows the Parabox Digital system: monochrome and dark first, hard
-corners, hairline rules, generous negative space, Inter for text and JetBrains Mono for
-every number. Direction is the only thing that earns colour, which suits an app whose
-entire subject is a green line that should be red.
+Visually the app follows andrewlengly.com: a cream ground with ink type, light by default
+and dark when the system is, hairline rules, and section titles in brackets. General Sans
+sets the headings, Satoshi sets the text and every number with tabular figures, and
+Departure Mono is kept for small labels. Emerald means up and a brick red means down.
+Direction is the only thing that earns colour, which suits an app whose entire subject is
+a green line that should be red.
 
 ## What this is not
 

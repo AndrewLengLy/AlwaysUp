@@ -13,11 +13,11 @@ function Header({ revealing, distortion }: { revealing: boolean; distortion: Dis
   const { view, go, mode } = useStore()
 
   return (
-    <header className="sticky top-0 z-30 border-b border-pbx-800 bg-pbx-black/90 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-line bg-ground/90 backdrop-blur-md">
       <nav className="mx-auto flex w-full max-w-5xl items-center gap-3 px-5 py-3 sm:px-8">
         <button
           onClick={() => go({ name: 'portfolio' })}
-          className="flex min-h-11 items-center gap-2.5 text-[15px] font-semibold tracking-tight text-pbx-white"
+          className="flex min-h-11 items-center gap-2.5 font-display text-[18px] font-semibold tracking-[-0.03em] text-ink"
         >
           <Mark />
           AlwaysUp
@@ -40,7 +40,7 @@ function Header({ revealing, distortion }: { revealing: boolean; distortion: Dis
           aria-label="Settings"
           aria-current={view.name === 'settings' ? 'page' : undefined}
           className={`flex min-h-11 min-w-11 items-center justify-center transition-colors ${
-            view.name === 'settings' ? 'text-pbx-white' : 'text-pbx-400 hover:text-pbx-white'
+            view.name === 'settings' ? 'text-ink' : 'text-muted hover:text-ink'
           }`}
         >
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -62,8 +62,8 @@ function Header({ revealing, distortion }: { revealing: boolean; distortion: Dis
 function Mark() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <path d="M2 13.5 6 8.5l3.2 3 5-7.2" stroke="#21c97f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M11.6 4.3h3.6v3.6" stroke="#21c97f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 13.5 6 8.5l3.2 3 5-7.2" stroke="var(--up)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11.6 4.3h3.6v3.6" stroke="var(--up)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -86,7 +86,7 @@ function Shell() {
     <div className="min-h-full">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:bg-pbx-white focus:px-4 focus:py-2 focus:text-[13px] focus:font-medium focus:text-pbx-black"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:bg-ink focus:px-4 focus:py-2 focus:text-[13px] focus:font-medium focus:text-ground"
       >
         Skip to content
       </a>
@@ -103,13 +103,13 @@ function Shell() {
         </motion.div>
       </main>
 
-      <footer className="border-t border-pbx-800">
+      <footer className="border-t border-line">
         <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
           {/* The one standing disclaimer. Saying it once, in the place a disclaimer
               normally lives, is worth more than saying it on every surface: the app can
               then stay deadpan everywhere else, which is both funnier and clearer about
               what it actually does to the numbers. */}
-          <p className="text-[11.5px] leading-relaxed text-pbx-500">
+          <p className="text-[11.5px] leading-relaxed text-faint">
             AlwaysUp draws losing positions as gains on purpose. Any figure on screen may be the exact
             opposite of what happened. Not investment advice, and not a basis for any decision.
           </p>

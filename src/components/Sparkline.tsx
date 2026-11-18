@@ -4,8 +4,7 @@ import type { Point } from '../lib/types'
 import { applyComfort, changeOf, comfortOf, type ComfortMode } from '../lib/flip'
 import { areaPath, lerpArray, linePath, project } from '../lib/geometry'
 
-const UP = '#21c97f'
-const DOWN = '#f2555a'
+import { usePalette } from '../lib/palette'
 
 type Props = {
   points: Point[]
@@ -18,6 +17,7 @@ type Props = {
 }
 
 export function Sparkline({ points, mode, basis, reveal = false, width = 96, height = 36 }: Props) {
+  const { up: UP, down: DOWN } = usePalette()
   const comfort = useMemo(() => comfortOf(points, mode, basis), [points, mode, basis])
   const display = useMemo(() => applyComfort(points, comfort), [points, comfort])
   const comforted = comfort.kind !== 'none'
