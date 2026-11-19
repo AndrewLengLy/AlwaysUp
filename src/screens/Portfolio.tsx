@@ -147,30 +147,30 @@ export function Portfolio({
               initial={{ y: 5 }}
               animate={{ y: 0 }}
               transition={{ duration: 0.18 }}
-              className="tnum font-mono text-[36px] leading-none font-semibold tracking-tight text-pbx-white"
+              className="tnum font-mono text-[36px] leading-none font-semibold tracking-tight text-ink"
             >
               {fmtMoney(value)}
             </motion.p>
 
             <div className="mt-3.5 flex items-center gap-2">
               <ChangeBadge pct={shownChange.pct} abs={shownChange.abs} size="lg" />
-              <span className="text-[13px] text-pbx-400">today</span>
+              <span className="text-[13px] text-muted">today</span>
             </div>
 
             {/* The number that actually hurts: not the day, the whole holding. */}
-            <div className="mt-4 border-t border-pbx-800 pt-4">
+            <div className="mt-4 border-t border-line pt-4">
               {ret ? (
                 <>
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[11px] font-semibold tracking-[0.14em] text-pbx-400 uppercase">
+                    <span className="text-[11px] font-pixel tracking-[0.06em] text-muted uppercase">
                       Total return
                     </span>
                     <ChangeBadge pct={ret.pct} abs={ret.gain} size="sm" />
                   </div>
-                  <p className="mt-1.5 text-[11.5px] text-pbx-500">Cost {fmtMoney(ret.cost)}</p>
+                  <p className="mt-1.5 text-[11.5px] text-faint">Cost {fmtMoney(ret.cost)}</p>
                 </>
               ) : (
-                <p className="text-[11.5px] leading-relaxed text-pbx-500">
+                <p className="text-[11.5px] leading-relaxed text-faint">
                   {unpriced === 1
                     ? 'One holding has no cost basis, so there is no total return to report.'
                     : `${unpriced} holdings have no cost basis, so there is no total return to report.`}{' '}
@@ -189,10 +189,10 @@ export function Portfolio({
                 >
                   {totalFlipped ? 'Back to comfort' : 'Show the real total'}
                 </Button>
-                <span className="text-[12px] text-pbx-500">or press and hold</span>
+                <span className="text-[12px] text-faint">or press and hold</span>
               </div>
             ) : (
-              <p className="mt-5 text-[12.5px] text-pbx-500">
+              <p className="mt-5 text-[12.5px] text-faint">
                 Up today{cost === null ? '' : ' and up on the whole position'}. Nothing needed adjusting.
               </p>
             )}
@@ -200,11 +200,11 @@ export function Portfolio({
             {/* Names the operation, not the genre. A total that was lifted has not been
                 mirrored, and the app does not get to describe it as if it had. */}
             {totalComforted && !totalTruth && (
-              <p className="mt-3 text-[11.5px] leading-relaxed text-pbx-500">{describeComfort(totalComfort)}</p>
+              <p className="mt-3 text-[11.5px] leading-relaxed text-faint">{describeComfort(totalComfort)}</p>
             )}
 
             {substituted.length > 0 && (
-              <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-pbx-800 pt-4 text-[12px] leading-relaxed text-warn-400">
+              <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-line pt-4 text-[12px] leading-relaxed text-warn">
                 <SimulatedChip />
                 <span>
                   This total includes invented prices for {substituted.join(', ')}. Real data could not be
@@ -214,10 +214,13 @@ export function Portfolio({
             )}
           </Card>
 
-          <p className="mt-3 text-[11.5px] leading-relaxed text-pbx-500">
-            {source.real
-              ? `Real companies, real prices from ${source.label}.`
-              : 'Simulated prices for fictional companies.'}
+          <p className="mt-3 text-[11.5px] leading-relaxed text-faint">
+            {/* Claims real prices only when every holding on screen has them. */}
+            {!source.real
+              ? 'Simulated prices for fictional companies.'
+              : substituted.length > 0
+                ? `Real companies. ${source.label} could not be reached, so the prices marked Simulated are invented.`
+                : `Real companies, real prices from ${source.label}.`}
           </p>
         </section>
 
@@ -228,21 +231,21 @@ export function Portfolio({
                 <button
                   onClick={() => setRevealAll((v) => !v)}
                   aria-pressed={revealAll}
-                  className={`min-h-11 px-2 text-[11px] font-semibold tracking-[0.12em] uppercase transition-colors ${
-                    revealAll ? 'text-down-400' : 'text-pbx-400 hover:text-pbx-white'
+                  className={`min-h-11 px-2 text-[11px] font-pixel tracking-[0.06em] uppercase transition-colors ${
+                    revealAll ? 'text-down' : 'text-muted hover:text-ink'
                   }`}
                 >
                   {revealAll ? 'Hide reality' : 'Reveal all'}
                 </button>
               ) : (
-                <span className="text-[11px] tracking-[0.12em] text-pbx-500 uppercase">All up today</span>
+                <span className="text-[11px] font-pixel tracking-[0.06em] text-faint uppercase">All up today</span>
               )
             }
           >
             Holdings
           </SectionLabel>
 
-          <Card className="divide-y divide-pbx-800">
+          <Card className="divide-y divide-line">
             {rows.map(({ quote, display, change, real }) => (
               <Row
                 key={quote.ticker}
@@ -260,7 +263,7 @@ export function Portfolio({
             ))}
           </Card>
 
-          <p className="mt-3 text-[11.5px] text-pbx-500">
+          <p className="mt-3 text-[11.5px] text-faint">
             Sorted best first. Tap a row to open it, or press and hold to see the real change.
           </p>
         </section>
@@ -314,26 +317,26 @@ function Row({
           : ''
       }${quote.substituted ? ' Simulated data: real prices were unavailable.' : ''}`}
       className={`flex min-h-16 cursor-pointer items-center gap-4 px-4 py-3.5 no-select transition-colors ${
-        isHeld ? 'bg-pbx-800' : 'hover:bg-pbx-800/60'
+        isHeld ? 'bg-line' : 'hover:bg-line/60'
       }`}
       {...handlers}
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-[15px] font-semibold text-pbx-white">{quote.ticker}</span>
-          <span className="hidden truncate text-[12.5px] text-pbx-400 sm:inline">{quote.name}</span>
+          <span className="text-[15px] font-semibold text-ink">{quote.ticker}</span>
+          <span className="hidden truncate text-[12.5px] text-muted sm:inline">{quote.name}</span>
           {quote.substituted && <SimulatedChip />}
         </div>
         {/* Two atomic facts rather than one sentence: a phone has no room for both on
             one line, and this wraps between them instead of through the middle of the
             figure. */}
-        <span className="flex flex-wrap items-baseline gap-x-2 text-[12px] text-pbx-500">
+        <span className="flex flex-wrap items-baseline gap-x-2 text-[12px] text-faint">
           <span>
             {shares} {shares === 1 ? 'share' : 'shares'}
           </span>
           {ret && (
             <span className="whitespace-nowrap">
-              <span className={`tnum font-mono ${cents(ret.gain) >= 0 ? 'text-up-400' : 'text-down-400'}`}>
+              <span className={`tnum font-mono ${cents(ret.gain) >= 0 ? 'text-up' : 'text-down'}`}>
                 {fmtSigned(ret.gain)}
               </span>{' '}
               total
@@ -345,7 +348,7 @@ function Row({
       <Sparkline points={quote.points} mode={mode} basis={basis} reveal={isHeld || forceReveal} />
 
       <div className="flex w-[104px] flex-col items-end gap-1">
-        <span className="tnum font-mono text-[15px] text-pbx-white">{fmtPrice(last)}</span>
+        <span className="tnum font-mono text-[15px] text-ink">{fmtPrice(last)}</span>
         <ChangeBadge pct={change.pct} abs={change.abs} size="sm" showAbs={false} />
       </div>
     </div>

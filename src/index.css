@@ -1,30 +1,96 @@
 @import "tailwindcss";
 
+/*
+ * The look of andrewlengly.com: a warm cream ground with ink type, emerald as the one color that means
+ * "up", General Sans for display, Satoshi for text and numbers, and Departure Mono for small labels only.
+ * Light by default, like the site. Dark follows the system setting.
+ * The chart colors in src/lib/palette.ts hold the same values, since the charts animate between them.
+ */
+@font-face {
+  font-family: "General Sans";
+  src: url("/fonts/GeneralSans-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-Medium.woff2") format("woff2");
+  font-weight: 500 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Departure Mono";
+  src: url("/fonts/DepartureMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --ground: #f4f3ef;
+  --panel: #efede7;
+  --ink: #111111;
+  --ink-soft: #2b2b2b;
+  --muted: #6b6b6b;
+  --faint: #8e8c87;
+  --line: #dddbd4;
+  --line-strong: #cbc9c1;
+  --rule: #b5b3ab;
+  --up: #1d7a5b;
+  --up-deep: #0f2c24;
+  --down: #b8432e;
+  --warn: #1f37b5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ground: #0e0e0e;
+    --panel: #141414;
+    --ink: #edebe6;
+    --ink-soft: #cfccc6;
+    --muted: #9b9994;
+    --faint: #75736e;
+    --line: #232322;
+    --line-strong: #31302e;
+    --rule: #43423f;
+    --up: #3a987d;
+    --up-deep: #5cb89b;
+    --down: #e0715b;
+    --warn: #6b82ff;
+  }
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-rule: var(--rule);
+  --color-up: var(--up);
+  --color-up-deep: var(--up-deep);
+  --color-down: var(--down);
+  /* Provenance, not direction: flags data that is invented rather than fetched. Cobalt, the site's second color. */
+  --color-warn: var(--warn);
+}
+
+/* Not inline: the chart's SVG text reads these as var(--font-pixel) and the like. */
 @theme {
-  /* Parabox is fundamentally monochrome: white on black, high contrast, generous space. */
-  --color-pbx-black: #0a0a0a;
-  --color-pbx-panel: #101010;
-  --color-pbx-800: #1f1f1f;
-  --color-pbx-700: #2a2a2a;
-  --color-pbx-600: #3a3a3a;
-  --color-pbx-500: #808080;
-  --color-pbx-400: #9ca3af;
-  --color-pbx-200: #d4d4d4;
-  --color-pbx-white: #fafafa;
-
-  /* The only chromatic tokens in the system. Direction is the one thing that earns colour. */
-  --color-up-400: #4ade9b;
-  --color-up-500: #21c97f;
-  --color-up-600: #12a566;
-  --color-down-400: #ff8085;
-  --color-down-500: #f2555a;
-
-  /* Provenance, not direction: flags data that is invented rather than fetched. */
-  --color-warn-400: #f0bd6b;
-  --color-warn-500: #e8a33d;
-
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  /* Numbers stay in Satoshi with tabular figures (.tnum), so they line up without a code face. */
+  --font-mono: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  --font-pixel: "Departure Mono", ui-monospace, monospace;
 }
 
 html, body, #root {
@@ -33,11 +99,21 @@ html, body, #root {
 
 body {
   margin: 0;
-  background: var(--color-pbx-black);
-  color: var(--color-pbx-white);
+  background: var(--ground);
+  color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+}
+
+h1, h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+}
+
+/* Small labels take the pixel face. It has one weight, so no bold. */
+.font-pixel {
+  font-weight: 400;
 }
 
 /* Numbers should never reflow while they animate. */
@@ -54,8 +130,33 @@ body {
 
 /* One focus treatment, everywhere, and it is always visible. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-pbx-white);
+  outline: 2px solid var(--up);
   outline-offset: 2px;
+}
+
+/* A bracketed section title, [Holdings], with the brackets in emerald, as on andrewlengly.com. */
+.bracket {
+  color: var(--up);
+  font-weight: 500;
+}
+
+/*
+ * The selected option is marked with four corner brackets, like the palette swatches on andrewlengly.com.
+ * Each corner is two short strokes, so the box keeps its hairline.
+ */
+.corners {
+  --c: var(--ink);
+  --l: 10px;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--l) 1.5px,
+    linear-gradient(var(--c), var(--c)) top left / 1.5px var(--l),
+    linear-gradient(var(--c), var(--c)) top right / var(--l) 1.5px,
+    linear-gradient(var(--c), var(--c)) top right / 1.5px var(--l),
+    linear-gradient(var(--c), var(--c)) bottom left / var(--l) 1.5px,
+    linear-gradient(var(--c), var(--c)) bottom left / 1.5px var(--l),
+    linear-gradient(var(--c), var(--c)) bottom right / var(--l) 1.5px,
+    linear-gradient(var(--c), var(--c)) bottom right / 1.5px var(--l);
+  background-repeat: no-repeat;
 }
 
 /* The scrub track. A real range input, so keyboard and screen readers get it for free. */
@@ -70,12 +171,12 @@ body {
 
 .scrub::-webkit-slider-runnable-track {
   height: 2px;
-  background: linear-gradient(to right, var(--color-up-500), var(--color-pbx-600) 50%, var(--color-down-500));
+  background: linear-gradient(to right, var(--up), var(--rule) 50%, var(--down));
 }
 
 .scrub::-moz-range-track {
   height: 2px;
-  background: linear-gradient(to right, var(--color-up-500), var(--color-pbx-600) 50%, var(--color-down-500));
+  background: linear-gradient(to right, var(--up), var(--rule) 50%, var(--down));
 }
 
 .scrub::-webkit-slider-thumb {
@@ -84,7 +185,7 @@ body {
   width: 14px;
   height: 22px;
   margin-top: -10px;
-  background: var(--color-pbx-white);
+  background: var(--ink);
   border: 0;
 }
 
@@ -93,7 +194,7 @@ body {
   height: 22px;
   border: 0;
   border-radius: 0;
-  background: var(--color-pbx-white);
+  background: var(--ink);
 }
 
 @media (prefers-reduced-motion: reduce) {

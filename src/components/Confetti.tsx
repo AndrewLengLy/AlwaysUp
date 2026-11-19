@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { prefersReducedMotion } from '../lib/useSize'
-
-const COLORS = ['#21c97f', '#4ade9b', '#12a566', '#c8d0d8']
+import { paletteNow } from '../lib/palette'
 
 /**
  * Fires whenever `trigger` changes, and not at all while it is null. Delulu mode only;
@@ -17,6 +16,7 @@ export function Confetti({ trigger }: { trigger: string | null }) {
     const canvas = ref.current
     if (!canvas || prefersReducedMotion()) return
     const ctx = canvas.getContext('2d')
+    const COLORS = paletteNow().confetti
     if (!ctx) return
 
     const dpr = Math.min(devicePixelRatio || 1, 2)

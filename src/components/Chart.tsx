@@ -15,8 +15,7 @@ import { useSize, prefersReducedMotion } from '../lib/useSize'
 import { fmtAxisTime, fmtPrice, fmtSpokenReturn, RANGE_LABEL } from '../lib/format'
 import { MirrorControl } from './MirrorControl'
 
-const UP = '#21c97f'
-const DOWN = '#f2555a'
+import { usePalette } from '../lib/palette'
 
 /** How long the honest chart is allowed to exist before the app catches itself. */
 const CAUGHT_ITSELF_MS = 420
@@ -49,6 +48,7 @@ type Props = {
 }
 
 export function Chart({ points, mode, range, t, basis, shares = 0, height = 340, onRevealChange }: Props) {
+  const { up: UP, down: DOWN } = usePalette()
   const [ref, size] = useSize<HTMLDivElement>()
   const w = size.w
   const h = height
@@ -276,7 +276,7 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
         role={comforted ? 'button' : undefined}
         tabIndex={comforted ? 0 : undefined}
         aria-label={comforted ? 'Chart. Press to flip between the comforting version and what actually happened.' : undefined}
-        className={`relative w-full touch-none no-select border border-pbx-800 bg-pbx-panel ${
+        className={`relative w-full touch-none no-select border border-line bg-panel ${
           comforted ? 'cursor-pointer' : ''
         }`}
         style={{ height: h }}
@@ -294,12 +294,12 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
 
             {ticks.map((v) => (
               <g key={v}>
-                <line x1={plot.x} x2={plot.x + plot.w} y1={yOf(v)} y2={yOf(v)} stroke="#1f1f1f" strokeWidth={1} />
+                <line x1={plot.x} x2={plot.x + plot.w} y1={yOf(v)} y2={yOf(v)} stroke="var(--line)" strokeWidth={1} />
                 <text
                   x={w - PAD.right + 12}
                   y={yOf(v) + 4}
                   className="tnum"
-                  fill="#9ca3af"
+                  fill="var(--muted)"
                   fontSize={11}
                   fontFamily="var(--font-mono)"
                 >
@@ -313,7 +313,7 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
               x2={plot.x + plot.w}
               y1={openY}
               y2={openY}
-              stroke="#3a3a3a"
+              stroke="var(--rule)"
               strokeWidth={1}
               strokeDasharray="2 4"
             />
@@ -327,7 +327,7 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
                   x2={plot.x + plot.w}
                   y1={beY}
                   y2={beY}
-                  stroke="#7d8794"
+                  stroke="var(--faint)"
                   strokeWidth={1}
                   strokeDasharray="6 4"
                 />
@@ -335,10 +335,10 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
                   x={plot.x + plot.w - 6}
                   y={beLabelY}
                   textAnchor="end"
-                  fill="#98a2b3"
-                  fontSize={9.5}
-                  letterSpacing={1.6}
-                  fontFamily="var(--font-mono)"
+                  fill="var(--muted)"
+                  fontSize={10}
+                  letterSpacing={0.6}
+                  fontFamily="var(--font-pixel)"
                 >
                   {`BREAK EVEN ${fmtPrice(be)}`}
                 </motion.text>
@@ -348,7 +348,7 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
             {/* The axis the two versions are mirrored about. Only drawn while the flip is
                 in flight, and only when the transform really is a reflection. */}
             <motion.g style={{ opacity: axisOpacity }}>
-              <line x1={plot.x} x2={plot.x + plot.w} y1={foldY} y2={foldY} stroke="#fafafa" strokeWidth={1} strokeDasharray="1 5" />
+              <line x1={plot.x} x2={plot.x + plot.w} y1={foldY} y2={foldY} stroke="var(--ink)" strokeWidth={1} strokeDasharray="1 5" />
             </motion.g>
 
             {/* Both versions, held up next to each other at the moment the line is flat. */}
@@ -385,10 +385,10 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
             <motion.text
               x={plot.x + 8}
               y={foldY - 8}
-              fill="#fafafa"
-              fontSize={9.5}
-              letterSpacing={2.4}
-              fontFamily="var(--font-mono)"
+              fill="var(--ink)"
+              fontSize={10}
+              letterSpacing={0.6}
+              fontFamily="var(--font-pixel)"
               style={{ opacity: foldNoteOpacity }}
             >
               {foldNote ?? ''}
@@ -399,7 +399,7 @@ export function Chart({ points, mode, range, t, basis, shares = 0, height = 340,
                 key={i}
                 x={tick.x + (i === 0 ? 6 : 0)}
                 y={h - 7}
-                fill="#808080"
+                fill="var(--faint)"
                 fontSize={10.5}
                 textAnchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'}
               >

@@ -31,7 +31,7 @@ export function MirrorControl({
 
   if (disabled) {
     return (
-      <p className="border border-pbx-800 bg-pbx-panel px-4 py-3 text-[13px] text-pbx-400">{reason}</p>
+      <p className="border border-line bg-panel px-4 py-3 text-[13px] text-muted">{reason}</p>
     )
   }
 
@@ -39,16 +39,16 @@ export function MirrorControl({
     pct <= 2 ? 'Comforting version' : pct >= 98 ? 'What actually happened' : `Mid flip, ${pct}% of the way to reality`
 
   return (
-    <div className="border border-pbx-800 bg-pbx-panel">
+    <div className="border border-line bg-panel">
       <div className="flex items-center gap-4 px-4 pt-3">
-        <span className="text-[10.5px] font-semibold tracking-[0.16em] text-pbx-400 uppercase">Mirror</span>
-        <span aria-live="polite" className="flex-1 truncate text-right text-[12.5px] text-pbx-200">
+        <span className="text-[10.5px] font-pixel tracking-[0.06em] text-muted uppercase">Mirror</span>
+        <span aria-live="polite" className="flex-1 truncate text-right text-[12.5px] text-ink-soft">
           {state}
         </span>
       </div>
 
       <div className="flex items-center gap-3 px-4">
-        <span aria-hidden="true" className="shrink-0 text-[11px] font-medium text-up-400">
+        <span aria-hidden="true" className="shrink-0 text-[11px] font-medium text-up">
           Comfort
         </span>
         <input
@@ -62,17 +62,17 @@ export function MirrorControl({
           aria-label="Reveal the real chart"
           aria-valuetext={state}
         />
-        <span aria-hidden="true" className="shrink-0 text-[11px] font-medium text-down-400">
+        <span aria-hidden="true" className="shrink-0 text-[11px] font-medium text-down">
           Reality
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-pbx-800 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-2.5">
         <Button variant="secondary" onClick={onFlip} className="px-3">
           <FlipGlyph />
           Flip it
         </Button>
-        <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-pbx-400">
+        <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-muted">
           Drag the track, or press and hold the chart. Flip it as many times as you like.
         </p>
       </div>
